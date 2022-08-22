@@ -1,6 +1,12 @@
-
-
-from nipype.interfaces.base import CommandLine, CommandLineInputSpec, File, TraitedSpec, traits, InputMultiPath, isdefined
+from nipype.interfaces.base import (
+    CommandLine,
+    CommandLineInputSpec,
+    File,
+    TraitedSpec,
+    traits,
+    InputMultiPath,
+    isdefined,
+)
 import nipype.interfaces.fsl as fsl  # fsl
 from nipype.utils.filemanip import split_filename, fname_presuffix
 
@@ -33,7 +39,10 @@ class TransformInfoInputSpec(CommandLineInputSpec):
     fwhm = traits.Float(
         argstr="--fwhm=%f", desc="FWHM (in mm) of gaussian smoothing kernel"
     )
-    output_type = traits.Enum("NIFTI", list(fsl.Info.ftypes.keys()), desc="FSL output type")
+    output_type = traits.Enum(
+        "NIFTI", list(fsl.Info.ftypes.keys()), desc="FSL output type"
+    )
+
 
 class TOPUPOutputSpec(TraitedSpec):
     out_fieldcoef = File(exists=True, desc="file containing the field coefficients")
