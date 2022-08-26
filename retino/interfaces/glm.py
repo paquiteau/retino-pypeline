@@ -2,10 +2,9 @@
 
 import os
 
-import numpy as np
-
 import nibabel as nib
-from nilearn.glm.first_level import make_first_level_design_matrix
+import numpy as np
+from nilearn.glm import threshold_stats_img
 from nipype.interfaces.base import (
     BaseInterface,
     BaseInterfaceInputSpec,
@@ -13,12 +12,9 @@ from nipype.interfaces.base import (
     TraitedSpec,
     traits,
 )
-
-
 from nipype.utils.filemanip import split_filename
-from pandas._libs.tslibs.timestamps import integer_op_not_supported
 
-from retino.glm import make_design_matrix, get_contrast_zscore
+from retino.glm import get_contrast_zscore, glm_phase_map, make_design_matrix
 
 
 class DesignMatrixRetinoInputSpec(BaseInterfaceInputSpec):
@@ -57,25 +53,27 @@ class DesignMatrixRetino(BaseInterface):
     def _run_interface(self, runtime):
 
         fmri_timeserie = nib.load(self.inputs.data_file)
+
         motion = np.loadtxt(self.inputs.motion_file)
 
         design_matrix = make_design_matrix(
             fmri_timeserie,
             motion,
             n_cycles=self.inputs.n_cycles,
-            clockwise=self.inputs.clockwise,
+            clockwise=self.inputs.clockwise_rotation,
             TR=self.inputs.volumetric_tr,
-            file_suffix="design_matrix.csv",
         )
 
         _, base, _ = split_filename(self.inputs.data_file)
+        print(base)
+        design_matrix.to_csv(f"{base}_dm.csv")
 
-        design_matrix.to_csv(base + "_design_matrix.csv")
+        return runtime
 
     def _list_outputs(self):
         outputs = self._outputs().get()
         _, base, _ = split_filename(self.inputs.data_file)
-        outputs["design_matrix"] = os.path.abspath(base + "_design_matrix.csv")
+        outputs["design_matrix"] = os.path.abspath(f"{base}_dm.csv")
         return outputs
 
 
@@ -96,31 +94,35 @@ class ContrastRetinoInputSpec(BaseInterfaceInputSpec):
     )
     volumetric_tr = traits.Float(1.0, desc="the time to acquire a single volume.")
 
-    first_level_kwargs = traits.Dict()
+    first_level_kwargs = traits.Dict(
+        desc="extra kwargs for the first level Model of nilearn"
+    )
 
 
 class ContrastRetinoOutputSpec(TraitedSpec):
-    cos_z = File(desc="Z-score after t test on cos regressor")
-    sin_z = File(desc="Z-score after t test on sin regressor")
-    rot_z = File(desc="Z-score after t test on rot regressor")
+    cos_stat = traits.Dict(desc="statistics for cosinus contrast")
+    sin_stat = traits.Dict(desc="statistics for sinus contrast")
+    rot_stat = traits.Dict(desc="statistics for rotation contrast")
 
 
 class ContrastRetino(BaseInterface):
     input_spec = ContrastRetinoInputSpec
     output_spec = ContrastRetinoOutputSpec
+    available_stats = ["z_score", "stat", "p_value", "effect_size", "effect_variance"]
 
     def _run_interface(self, runtime):
 
-        cos, sin , rot = get_contrast_zscore(
-            self.inputs.fmri_timeserie,
+        cos, sin, rot = get_contrast_zscore(
+            self.inputs.fmri_timeseries,
             self.inputs.design_matrices,
             self.inputs.volumetric_tr,
             self.inputs.first_level_kwargs,
         )
 
         basename = self._get_base_name()
-        for arr, suffix in zip([cos, sin ,rot], ['cos', 'sin', 'rot']):
-            arr.to_filename(f'{basename}_{suffix}_zscore.nii')
+        for arr, suffix in zip([cos, sin, rot], ["cos", "sin", "rot"]):
+            for key in self.available_stats:
+                arr[key].to_filename(f"{basename}_{suffix}_{key}.nii")
 
         return runtime
 
@@ -129,22 +131,24 @@ class ContrastRetino(BaseInterface):
         basename = self._get_base_name()
 
         outputs = self._outputs().get()
-        for suffix in ['cos', 'sin', 'rot']:
-            outputs[f"{suffix}_z"] = os.path.abspath(f'{basename}_{suffix}_zscore.nii')
+        for suffix in ["cos", "sin", "rot"]:
+            outputs[f"{suffix}_stat"] = {
+                key: os.path.abspath(f"{basename}_{suffix}_{key}.nii")
+                for key in self.available_stats
+            }
+
         return outputs
 
     def _get_base_name(self):
 
-        if isinstance(self.inputs.fmri_series, list):
-             _, basename, _ = split_filename(self.inputs.fmri_timeseries[0])
-             basename.replace("AntiClock", "Global")
-             basename.replace("Clock", "Global")
+        if isinstance(self.inputs.fmri_timeseries, list):
+            _, basename, _ = split_filename(self.inputs.fmri_timeseries[0])
+            basename.replace("AntiClock", "Global")
+            basename.replace("Clock", "Global")
         else:
-             _, basename, _ = split_filename(self.inputs.fmri_timeseries)
+            _, basename, _ = split_filename(self.inputs.fmri_timeseries)
 
         return basename
-
-
 
 
 class PhaseMapInputSpec(BaseInterfaceInputSpec):
@@ -152,18 +156,48 @@ class PhaseMapInputSpec(BaseInterfaceInputSpec):
     sin_clock = File(mandatory=True, desc="cos z-score for clockwise data")
     cos_anticlock = File(mandatory=True, desc="cos z-score for clockwise data")
     sin_anticlock = File(mandatory=True, desc="cos z-score for clockwise data")
-    threshold = traits.Float(0.001)
+    cos_glob = File(mandatory=True, desc="cos z-score fixed effect map.")
+    rot_glob = File(mandatory=True, desc="rot z-score fixed effect map.")
+    threshold = traits.Float(0.001, desc="the threshold for significance")
 
 
 class PhaseMapOutputSpec(TraitedSpec):
     phase_map = File(desc="the phase map")
+
 
 class PhaseMap(BaseInterface):
     input_spec = PhaseMapInputSpec
     output_spec = PhaseMapOutputSpec
 
     def _run_interface(self, runtime):
+        cos_clock = nib.load(self.inputs.cos_clock).get_fdata()
+        sin_clock = nib.load(self.inputs.sin_clock).get_fdata()
+        cos_anticlock = nib.load(self.inputs.cos_anticlock).get_fdata()
+        sin_anticlock = nib.load(self.inputs.sin_anticlock).get_fdata()
+
+        phase_map = glm_phase_map(cos_clock, sin_clock, cos_anticlock, sin_anticlock)
+
+        rot_glob = nib.load(self.inputs.rot_glob)
+        _, threshold = threshold_stats_img(
+            rot_glob, alpha=self.inputs.threshold, height_control="fpr"
+        )
+        phase_map[rot_glob.get_fdata() <= threshold] = np.NaN
+
+        phase_map = nib.Nifti1Image(phase_map, nib.load(self.inputs.cos_glob).affine)
+
+        out_name = (
+            "_".join(os.path.basename(self.inputs.rot_glob).split("_")[:3])
+            + "_phasemap.nii"
+        )
+
+        phase_map.to_filename(out_name)
+
         return runtime
 
     def _list_outputs(self):
-        return
+        out_name = (
+            "_".join(os.path.basename(self.inputs.rot_glob).split("_")[:3])
+            + "_phasemap.nii"
+        )
+        outputs = {"phase_map": os.path.abspath(out_name)}
+        return outputs
