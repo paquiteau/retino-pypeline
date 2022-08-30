@@ -13,6 +13,10 @@ class BaseWorkflowFactory():
         self._wf.run(*args, **kwargs)
 
 
+    def show_graph(self):
+        fname = self._wf.write_graph(dotfilename="graph.dot", graph2use="colored")
+        return fname
+
 def node_name(name, extra):
     if isinstance(extra, (tuple, list)):
         extra = "_".join(extra)
