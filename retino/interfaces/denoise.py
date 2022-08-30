@@ -14,6 +14,9 @@ from nipype.interfaces.base import (
 )
 from nipype.utils.filemanip import split_filename
 
+from nipy.labs.mask import compute_mask
+
+
 from denoiser.denoise import hybrid_pca, mp_pca, nordic, optimal_thresholding, raw_svt
 from denoiser.space_time.utils import estimate_noise
 
@@ -158,3 +161,33 @@ class NoiseStdMap(BaseInterface):
             os.path.basename(self.inputs.noise_map_file) + "_std.nii"
         )
         return outputs
+
+
+class MaskInputSpec(BaseInterfaceInputSpec):
+    in_file = File(exists=True, desc = "A fMRI input file.")
+
+class MaskOutputSpec(TraitedSpec):
+    mask = File(exists=True, desc = "the mask of a ROI")
+
+
+class Mask(BaseInterface):
+    input_spec = MaskInputSpec
+    output_spec = MaskOutputSpec
+
+    def _run_interface(self, runtime):
+        data = nib.load(self.inputs.in_file)
+
+        avg = np.mean(data.get_fdata(), axis=-1)
+
+        mask = np.uint8(compute_mask(avg))
+        mask_nii = nib.Nifti1Image(mask, affine=data.affine)
+
+        self._output_name = os.path.basename(self.inputs.in_file) + "_mask.nii"
+
+        mask_nii.to_filename(self._output_name)
+
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs["mask"] = self._output_name
