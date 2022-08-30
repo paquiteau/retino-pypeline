@@ -8,15 +8,13 @@ from nipype import Node, Workflow, Function, IdentityInterface
 
 
 
-class AnalysisWorkflow(BaseWorkflowFactory):
+class AnalysisWorkflowFactory(BaseWorkflowFactory):
     def __init__(self, basedata_dir, working_dir, n_cycles, TR, threshold=0.001):
         self.basedata_dir = basedata_dir
         self.working_dir = working_dir
         self.n_cycles = n_cycles
         self.TR = TR
         self.threshold=threshold
-
-        self._wf = self.build()
 
     def _add_design_matrix(self, clockwise=True, extra_name=""):
         return Node(DesignMatrixRetino(
@@ -26,8 +24,8 @@ class AnalysisWorkflow(BaseWorkflowFactory):
         ), node_name("design", extra_name))
 
     def _add_contrast(self, extra_name=""):
-        return Node(ContrastRetino(volumetric_TR=self.TR),
-               name=node_name("design", extra_name))
+        return Node(ContrastRetino(volumetric_tr=self.TR),
+               name=node_name("contrast", extra_name))
 
     def _add_phase_map(self):
         return Node(PhaseMap(threshold= self.threshold), "phase_map")
@@ -99,7 +97,7 @@ class AnalysisWorkflow(BaseWorkflowFactory):
         ]
 
         for name in ["clock","anticlock"]:
-            d_node = self._add_design(clockwise= name == "clock", extra_name=name)
+            d_node = self._add_design_matrix(clockwise= name == "clock", extra_name=name)
             c_node = self._add_contrast(extra_name=name)
             connect_list.append((files, d_node,
                                  [
@@ -113,7 +111,7 @@ class AnalysisWorkflow(BaseWorkflowFactory):
                                  phase,
                                  [
                                      (("cos_stat", get_key, "z_score"), f"cos_{name}"),
-                                     (("sin_stat", get_key, "z_score"), "sin_{name}"),
+                                     (("sin_stat", get_key, "z_score"), f"sin_{name}"),
                                  ]
                                  ))
             connect_list.append((c_node, sinker,
@@ -122,8 +120,8 @@ class AnalysisWorkflow(BaseWorkflowFactory):
                                     (("sin_stat", get_key, "z_score"), f"stats.@sin_{name}_z"),
                                 ]))
             # merge design_matrix and data to list for global contrast input.
-            connect_list.append((d_node, list_design, ["design_matrix", name]))
-            connect_list.append((files, list_data, ["data_{name}", name]))
+            connect_list.append((d_node, list_design, [("design_matrix", name)]))
+            connect_list.append((files, list_data, [(f"data_{name}", name)]))
 
         self._wf.connect(connect_list)
         return self._wf
