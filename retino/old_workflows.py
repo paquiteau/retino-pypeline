@@ -73,9 +73,8 @@ def get_preprocessing_workflow_topup(working_dir):
     applytopup.inputs.in_index = [1]
     applytopup.inputs.method = "jac"
     applytopup.inputs.output_type = "NIFTI"
-    applytopup.inputs.encoding_file = os.path.join(
-        os.path.abspath(os.getcwd()), "acq_params.txt"
-    )
+
+
     roi_coreg = Node(fsl.ExtractROI(t_min=0, t_size=1), name="roi_coreg")
     roi_coreg.inputs.output_type = "NIFTI"
 
@@ -198,7 +197,7 @@ def get_preprocessing_workflow_notopup(working_dir):
 
 def get_retino_preprocessing_workflow(
     working_dir,
-    output_dir,
+    output_dir
     basedata_dir,
     sequence="EPI3D",
     field_template=None,
@@ -453,11 +452,7 @@ def get_retino_workflow(
             (design_clock, list_design, [("design_matrix", "in1")]),
             (design_anticlock, list_design, [("design_matrix", "in2")]),
             (design_clock, contrast_clock, [("design_matrix", "design_matrices")]),
-            (
-                design_anticlock,
-                contrast_anticlock,
-                [("design_matrix", "design_matrices")],
-            ),
+            (design_anticlock, contrast_anticlock, [("design_matrix", "design_matrices")],),
             (list_design, contrast_glob, [("out", "design_matrices")]),
             (list_data, contrast_glob, [("out", "fmri_timeseries")]),
             (preproc_files, contrast_clock, [("data_clock", "fmri_timeseries")]),
