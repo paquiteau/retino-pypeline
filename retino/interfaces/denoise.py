@@ -87,8 +87,8 @@ class PatchDenoise(BaseInterface):
             # combine to get complex data
             data = np.complex64(data) * np.exp(1j * phase)
 
-        if isdefined(self.inputs.mask_file) and self.inputs.mask_file:
-            mask = np.abs(nib.load(self.inputs.mask_file).get_fdata()) > 0
+        if isdefined(self.inputs.mask) and self.inputs.mask:
+            mask = np.abs(nib.load(self.inputs.mask).get_fdata()) > 0
         else:
             mask = None
         try:
@@ -97,9 +97,12 @@ class PatchDenoise(BaseInterface):
             raise ValueError(
                 f"unknown denoising method '{self.inputs.method}', available are {list(DENOISER_MAP.keys())}"
             )
-        extra_kwargs = self.inputs.extra_kwargs
+        if isdefined(self.inputs.extra_kwargs) and self.inputs.extra_kwargs:
+            extra_kwargs = self.inputs.extra_kwargs
+        else:
+            extra_kwargs =  dict()
         if self.inputs.method in ["nordic"]:
-            extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std).get_fdata()
+            extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
         denoised_data, _, noise_std_map = denoise_func(
             data,
