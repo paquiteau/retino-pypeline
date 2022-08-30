@@ -42,9 +42,10 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
 
 
         def fsl_merge(in1, in2):
+            import nipype.interfaces.fsl as fsl
             merger = fsl.Merge(in_files=[in1, in2], dimension="t")
             results =  merger.run()
-            return results.outputs["merged_file"]
+            return results.outputs.merged_file
 
         fsl_merger = Node(Function(inputs_name=["in1","in2"], function=fsl_merge),
                           name="merger")
@@ -144,7 +145,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         }
 
         if "EPI" in sequence:
-            template["data_pa"]  = "sub_%02i/func/*1rep_PA*.nii"
+            template["data_pa"]  = "sub_%02i/func/*1rep_PA.nii"
         if denoise:
             template["noise"] = f"sub_%02i/extra/*{sequence}-0v.nii"
             if use_phase:
