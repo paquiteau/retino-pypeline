@@ -12,6 +12,8 @@ from nipype.interfaces.base import (
     traits,
     isdefined,
 )
+
+
 from nipype.utils.filemanip import split_filename
 
 from nipy.labs.mask import compute_mask
@@ -19,6 +21,8 @@ from nipy.labs.mask import compute_mask
 
 from denoiser.denoise import hybrid_pca, mp_pca, nordic, optimal_thresholding, raw_svt
 from denoiser.space_time.utils import estimate_noise
+
+
 
 DENOISER_MAP = {
     "mp-pca": mp_pca,
@@ -45,7 +49,7 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
     in_file_phase = File(
         exists=True, mandatory=False, desc="phase input file to denoise."
     )
-    noise_std = File(desc="noise_std_map")
+    noise_std_map = File(desc="noise_std_map")
     method = traits.Enum(*DENOISER_MAP.keys())
     patch_shape = traits.Union(
         traits.Int(), traits.List(traits.Int(), minlen=3, maxlen=3)
@@ -53,7 +57,7 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
     patch_overlap = traits.Union(
         traits.Int(), traits.List(traits.Int(), minlen=3, maxlen=3)
     )
-    mask_file = File(exists=True)
+    mask = File(exists=True)
     recombination = traits.Enum("weighted", "mean")
     extra_kwargs = traits.Dict()
 
