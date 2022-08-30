@@ -180,9 +180,12 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         else:
             connections += [(realign, coregister, [("realigned_files", "in.func")])]
 
-        connections += [(coregister, out_node, [("out.coreg_func", "processed_func"),
-                                               ("out.coreg_anat", "anat")]),
-                       (realign, out_node, [("realignment_parameters", "motion")])]
+        connections += [
+            (files, coregister, [("anat", "in.anat")]),
+            (coregister, out_node, [("out.coreg_func", "processed_func"),
+                                    ("out.coreg_anat", "anat")]),
+            (realign, out_node, [("realignment_parameters", "motion")])
+        ]
 
         wf.connect(connections)
 
