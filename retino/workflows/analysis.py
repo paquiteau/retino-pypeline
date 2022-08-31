@@ -31,16 +31,17 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
         return Node(PhaseMap(threshold= self.threshold), "phase_map")
 
 
-    def build(self, preprocessing_subfolder):
+    def build(self):
         self._wf = Workflow(name="analysis", base_dir=self.working_dir)
 
+        in_fields = ["sub_id","denoising", "sequence"]
         input_node = Node(
-            IdentityInterface(fields=["sub_id", "sequence"]), name="infosource"
+            IdentityInterface(fields= in_fields), name="infosource"
         )
         input_files = ["data_clock", "motion_clock", "data_anticlock", "motion_anticlock"]
         files = Node(
             nio.DataGrabber(
-                infields=["sub_id", "sequence"],
+                infields=in_fields,
                 outfields=input_files,
                 base_directory=self.basedata_dir,
                 sort_filelist=True,
@@ -49,14 +50,13 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
             name="selectfiles",
         )
         files.inputs.field_template = {
-            "data_clock": f"sub_%02i/{preprocessing_subfolder}/*%s_Clock*.nii",
-            "motion_clock": f"sub_%02i/{preprocessing_subfolder}/*%s_Clock*.txt",
-            "data_anticlock": f"sub_%02i/{preprocessing_subfolder}/*%s_AntiClock*.nii",
-            "motion_anticlock": f"sub_%02i/{preprocessing_subfolder}/*%s_AntiClock*.txt",
-
+            "data_clock": f"sub_%02i/preprocess/%s/*%s_Clock*.nii",
+            "motion_clock": f"sub_%02i/preprocess/%s/*%s_Clock*.txt",
+            "data_anticlock": f"sub_%02i/preprocess/%s/*%s_AntiClock*.nii",
+            "motion_anticlock": f"sub_%02i/preprocess/%s/*%s_AntiClock*.txt",
         }
 
-        files.inputs.template_args = {key: [["sub_id", "sequence"]] for key in input_files}
+        files.inputs.template_args = {key: [in_fields] for key in input_files}
 
         c_glob = self._add_contrast(extra_name="glob")
 
