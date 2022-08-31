@@ -8,13 +8,16 @@ class BaseWorkflowFactory():
     def build(self, ):
         return NotImplementedError
 
-    def run(self, *args,**kwargs):
 
-        self._wf.run(*args, **kwargs)
+    @staticmethod
+    def run(wf, iter_on=None, plugin=None):
+        if iter_on is not None:
+            wf.get_node("infosource").iterables = iter_on
+        wf.run(plugin)
 
-
-    def show_graph(self):
-        fname = self._wf.write_graph(dotfilename="graph.dot", graph2use="colored")
+    @staticmethod
+    def show_graph(wf):
+        fname = wf.write_graph(dotfilename="graph.dot", graph2use="colored")
         return fname
 
 def node_name(name, extra):
