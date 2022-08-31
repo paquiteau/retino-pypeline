@@ -1,4 +1,6 @@
 from .base import BaseWorkflowFactory, node_name, getsubid, subid_varname
+import os
+from dataclasses import dataclass
 
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -12,16 +14,37 @@ from retino.interfaces.motion import RigidMotion
 
 MATLAB_CMD = "matlab -nosplash -nodesktop"
 
+@dataclass
+class DenoiseParameters:
+    """Denoise Parameters data structure."""
+    method: str = None
+    patch_shape: int  = 11
+    patch_overlap: int = 0
+    recombination: str = "weighted" # "center" is also available
+    use_phase: bool = False # denoise using complex images.
+
+    @property
+    def pretty_name(self):
+        if self.method:
+            name = self.method
+            name += f"_{self.patch_shape}_{self.patch_overlap}_{self.recombination[0]}"
+            if self.use_phase:
+                name += "_p"
+        else:
+            name = "noisy"
+        return name
+
+    @property
+    def pretty_par(self):
+        name = f"_{self.patch_shape}_{self.patch_overlap}{self.recombination[0]}"
+        if self.use_phase:
+            name += "p"
+        return name
+
 class PreprocessingWorkflowFactory(BaseWorkflowFactory):
-    def __init__(self, base_data_dir, working_dir, epi=True,  denoise_method=None, patch_shape=11, patch_overlap=0, recombination="weighted", ):
+    def __init__(self, base_data_dir, working_dir):
         self.working_dir = working_dir
         self.basedata_dir = base_data_dir
-        self.epi = epi
-        self.denoise_args = dict()
-        self.denoise_args["denoise_method"] = denoise_method
-        self.denoise_args["patch_shape"] = patch_shape
-        self.denoise_args["patch_overlap"] = patch_overlap
-        self.denoise_args["recombination"] = recombination
 
     def _add_realign_node(self):
         # 1. Realign  with SPM
@@ -127,17 +150,13 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         return files
 
 
-    def _make_inner_wf(self, name="Clock", denoise=True, use_phase=True, sequence="EPI3D"):
+    def _make_inner_wf(self, name, denoise_parameters,  sequence="EPI3D"):
         assert name in ["Clock", "AntiClock"]
-
-        self.use_phase = use_phase
-        self.denoise = denoise
-
 
         wf = Workflow(name=f"process_{name}", base_dir=self.working_dir)
 
-        in_node = Node(IdentityInterface(fields=["sub_id", "noise_std_map", "mask"] ), "in")
-        out_node = Node(IdentityInterface(fields=["anat", "func_processed", "motion"]), "out")
+        in_node = Node(IdentityInterface(fields=["sub_id", "noise_std_map", "mask", "denoise_method"] ), "in")
+        out_node = Node(IdentityInterface(fields=["anat", "processed_func", "motion"]), "out")
 
         template = {
             "anat": "sub_%02i/anat/*_T1.nii",
@@ -146,10 +165,8 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
 
         if "EPI" in sequence:
             template["data_pa"]  = "sub_%02i/func/*1rep_PA.nii"
-        if denoise:
-            template["noise"] = f"sub_%02i/extra/*{sequence}-0v.nii"
-            if use_phase:
-                template["data_phase"] = f"sub_%02i/func/*{sequence}_{name}wiseTask_phase.nii"
+        if denoise_parameters.use_phase:
+            template["data_phase"] = f"sub_%02i/func/*{sequence}_{name}wiseTask_phase.nii"
 
         files = self.__file_node(template)
 
@@ -157,42 +174,41 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         coregister = self._add_coregistration_wf()
 
         connections = [
+            # head of workflow
             (in_node, files, [("sub_id", "sub_id")]),
             (files, realign, [("data", "in_files")]),
-        ]
-        if denoise:
-            denoise_wf = self._make_noise_workflow(use_phase, extra_name=name)
-            connections += [(realign, denoise_wf, [("realigned_files","in.data")]),
-                            (in_node, denoise_wf, [("noise_std_map", "in.noise_std_map"),
-                                                   ("mask", "in.mask")])]
-            if use_phase:
-                connections += [(realign, denoise_wf,[("realignment_parameters", "in.motion")]),
-                                (files, denoise_wf, [("data_phase", "in.data_phase")])]
-
-        if "EPI" in sequence:
-            topup_wf = self._add_topup_wf()
-            connections += [(files, topup_wf, [("data_pa", "in.blip_opposite")])]
-            if denoise:
-                connections += [(denoise_wf, topup_wf, [("out.denoised_file", "in.blips")])]
-            else:
-                connections += [(realign, topup_wf, [("realigned_files", "in.blips")])]
-
-            connections += [(topup_wf, coregister, [("out.corrected", "in.func")])]
-        else:
-            connections += [(realign, coregister, [("realigned_files", "in.func")])]
-
-        connections += [
+            # tail of workflow
             (files, coregister, [("anat", "in.anat")]),
             (coregister, out_node, [("out.coreg_func", "processed_func"),
                                     ("out.coreg_anat", "anat")]),
             (realign, out_node, [("realignment_parameters", "motion")])
         ]
+        denoise_wf = self._make_noise_workflow(denoise_parameters, extra_name=name)
+
+        connections += [(realign, denoise_wf, [("realigned_files","in.data")]),
+                        (in_node, denoise_wf, [("noise_std_map", "in.noise_std_map"),
+                                            ("mask", "in.mask"),
+                                            ("denoise_method", "in.denoise_method"),
+                                            ])]
+        if denoise_parameters.use_phase:
+            connections += [(realign, denoise_wf,[("realignment_parameters", "in.motion")]),
+                            (files, denoise_wf, [("data_phase", "in.data_phase")])]
+
+        if "EPI" in sequence:
+            topup_wf = self._add_topup_wf()
+            connections += [
+                (files, topup_wf, [("data_pa", "in.blip_opposite")]),
+                (denoise_wf, topup_wf, [("out.denoised_file", "in.blips")]),
+                (topup_wf, coregister, [("out.corrected", "in.func")])
+            ]
+        else:
+            connections += [(realign, coregister, [("realigned_files", "in.func")])]
 
         wf.connect(connections)
 
         return wf
 
-    def _make_noise_workflow(self, use_phase, extra_name):
+    def _make_noise_workflow(self, denoise_parameters, extra_name):
         # Noise workflow:
         # 1. Get the noise Std map
         # 2. Compute a Mask of the brain
@@ -205,33 +221,35 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
 
         wf = Workflow(node_name("denoising", extra_name), base_dir=self.working_dir)
 
-        input_node = Node(IdentityInterface(["data", "data_phase", "noise_std_map","mask", "motion"]), "in")
+        input_node = Node(IdentityInterface(["data", "data_phase", "noise_std_map","mask", "motion", "denoise_method"]), "in")
         output_node = Node(IdentityInterface(["denoised_file"]), "out")
 
-        if use_phase:
+        d_node = Node(PatchDenoise(), name="denoise")
+        # match input parameters to denoise node interface
+        for attr in ["patch_shape", "patch_overlap", "recombination"]:
+            setattr(d_node.inputs, attr, getattr(denoise_parameters, attr))
+
+        connections = [
+            (input_node, d_node, [("data", "in_file_mag"),
+                                  ("noise_std_map", "noise_std_map"),
+                                  ("mask", "mask"),
+                                  ("denoise_method", "denoise_method")
+                                  ]),
+            (d_node, output_node, [("denoised_file", "denoised_file")]),
+        ]
+
+        if denoise_parameters.use_phase:
             rigid_motion = Node(RigidMotion(), name="rigid_motion")
 
-        d_node = Node(PatchDenoise(), name="denoise")
-        d_node.inputs.patch_shape = self.denoise_args["patch_shape"]
-        d_node.inputs.patch_overlap = self.denoise_args["patch_overlap"]
-        d_node.inputs.recombination = self.denoise_args["recombination"]
-        d_node.inputs.method = self.denoise_args["denoise_method"]
-
-        if use_phase:
-            wf.connect([(input_node, rigid_motion, [("data_phase", "in_file"),
-                                                ("motion", "motion_file")]),
-                    (rigid_motion, d_node, [("out", "in_file_phase")]),
-                    ])
-        wf.connect([
-                    (input_node, d_node, [("data", "in_file_mag"),
-                                          ("noise_std_map", "noise_std_map"),
-                                          ("mask", "mask"),
-                                          ]),
-                    (d_node, output_node, [("denoised_file", "denoised_file")]),
-                    ])
+            connections += [
+                (input_node, rigid_motion, [("data_phase", "in_file"),
+                                            ("motion", "motion_file")]),
+                (rigid_motion, d_node, [("out", "in_file_phase")]),
+            ]
+        wf.connect(connections)
         return wf
 
-    def _make_predenoise_wf(self, sequence):
+    def _make_predenoise_wf(self, denoise_params, sequence):
         in_node = Node(IdentityInterface(fields=["sub_id"]), name="in")
         out_node = Node(IdentityInterface(fields=["mask", "noise_std_map"]), name="out")
         template = {
@@ -242,7 +260,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         files =  self.__file_node(template)
 
         noise_map = Node(NoiseStdMap(), name="noise_map")
-        noise_map.inputs.block_size = self.denoise_args["patch_shape"]
+        noise_map.inputs.block_size = denoise_params.patch_shape
         noise_map.inputs.fft_scale = 100 # Magic Number, needs to be configured elsewhere
 
         brain_mask = Node(Mask(), name="mask")
@@ -256,43 +274,83 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
                     ])
 
         return wf
-    def build(self, denoise=True, use_phase=True, sequence="EPI3D"):
+    def build(self, sequence="EPI3D", denoise_method=None, patch_shape=11, patch_overlap=0, use_phase=False, recombination="weighted"):
+        """
+        Build the preprocessing workflow
 
+        Parameters
+        ----------
+        sequence: str
+        denoise_method: str
+        patch_shape: int
+        patch_overlap: int
+        recombination: str
 
-        wf_mask = self._make_predenoise_wf(sequence)
+        Returns
+        -------
+        nipype.Workflow
+        """
+        denoise_p = DenoiseParameters(
+            method=denoise_method,
+            patch_shape=patch_shape,
+            patch_overlap=patch_overlap,
+            recombination=recombination,
+            use_phase=use_phase,
+        )
 
-
-        self._wf = Workflow(name="preprocess", base_dir=self.working_dir)
+        final_wf = Workflow(name=f"preprocess{denoise_p.pretty_par}", base_dir=self.working_dir)
 
         in_node = Node(IdentityInterface(fields=["sub_id"] ), "infosource")
 
         sinker = Node(nio.DataSink(), name="sinker")
         sinker.inputs.base_directory = self.basedata_dir
         sinker.parameterization = False
+        sinker.inputs.substitutions = [
+            ("rp_sub", "sub"),
+            ("rrsub", "sub"),
+            ("rsub", "sub"),
+            ("_denoise_method_", "")
+        ]
 
-        self._wf.connect([(
-                in_node,
-                sinker,
-                [
-                    (("sub_id", getsubid), "container"),
-                    (("sub_id", subid_varname), "strip_dir"),
-                ],)])
 
-        if denoise:
-            self._wf.connect(in_node, "sub_id", wf_mask, "in.sub_id")
+        connections = [(
+            in_node,
+            sinker,
+            [
+                (("sub_id", getsubid), "container"),
+                (("sub_id", subid_varname), "strip_dir"),
+            ]
+        )]
+
+        if denoise_method:
+            wf_mask = self._make_predenoise_wf(denoise_p, sequence)
+            proxy_node = Node(IdentityInterface(fields=["mask", "noise_std_map", "denoise_method"]), name="proxy_denoise")
+            connections += [(in_node, wf_mask, [("sub_id", "in.sub_id")])]
+
+            connections += [(wf_mask, proxy_node, [("out.mask", "mask"),
+                                                 ("out.noise_std_map", "noise_std_map")])]
+        out_folder = f"preprocess.{denoise_p.pretty_name}.@"
 
         for name in ["Clock", "AntiClock"]:
-            wf = self._make_inner_wf(name=name, denoise=denoise, use_phase=use_phase, sequence=sequence)
-            self._wf.connect(in_node, "sub_id", wf, "in.sub_id")
-            if denoise:
-                self._wf.connect([(wf_mask, wf, [("out.mask", "in.mask"),
-                                                 ("out.noise_std_map", "in.noise_std_map")])])
-            self._wf.connect([(wf, sinker, [("out.anat", f"preprocess.@anat_{name}"),
-                                            ("out.func_processed", f"preprocess.@func_{name}"),
-                                            ("out.motion", f"preprocess.@motion_{name}")])])
+            wf = self._make_inner_wf(name=name, denoise_parameters=denoise_p, sequence=sequence)
+            connections += [(in_node, wf, [("sub_id", "in.sub_id")])]
+            if denoise_method:
+                connections += [(proxy_node, wf, [("mask", "in.mask"),
+                                                  ("noise_std_map", "in.noise_std_map"),
+                                                  ("denoise_method", "in.denoise_method")])]
 
-        return self._wf
-    def run(self, iter_on=None, plugin=None):
-        if iter_on is not None:
-            self._wf.get_node("infosource").iterables = iter_on
-        self._wf.run(plugin)
+            connections += [(wf, sinker, [("out.anat", out_folder + f"anat_{name}"),
+                                            ("out.processed_func", out_folder + f"func_{name}"),
+                                            ("out.motion", out_folder + f"motion_{name}")])]
+        final_wf.connect(connections)
+        return final_wf, denoise_p
+
+    @staticmethod
+    def run_with_denoiser(wf, sub_ids=None, denoise_methods=None,  plugin=None):
+        if sub_ids is not None:
+            wf.get_node("infosource").iterables = ("sub_id", sub_ids)
+        if not isinstance(denoise_methods, list):
+            denoise_methods = list(denoise_methods)
+
+        wf.get_node("proxy_denoise").iterables = ("denoise_method", denoise_methods)
+        wf.run(plugin)
