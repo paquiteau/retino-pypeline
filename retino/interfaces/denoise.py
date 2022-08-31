@@ -25,6 +25,7 @@ from denoiser.space_time.utils import estimate_noise
 
 
 DENOISER_MAP = {
+    None: None,
     "mp-pca": mp_pca,
     "hybrid-pca": hybrid_pca,
     "raw": raw_svt,
@@ -50,7 +51,7 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
         exists=True, mandatory=False, desc="phase input file to denoise."
     )
     noise_std_map = File(desc="noise_std_map")
-    method = traits.Enum(*DENOISER_MAP.keys())
+    denoise_method = traits.Enum(*DENOISER_MAP.keys())
     patch_shape = traits.Union(
         traits.Int(), traits.List(traits.Int(), minlen=3, maxlen=3)
     )
@@ -77,6 +78,9 @@ class PatchDenoise(BaseInterface):
         data_mag = nib.load(self.inputs.in_file_mag)
 
         data = data_mag.get_fdata()
+        if self.inputs.denoise_method is None:
+            return runtime
+
         if isdefined(self.inputs.in_file_phase) and self.inputs.in_file_phase:
 
             phase = nib.load(self.inputs.in_file_phase).get_fdata()
@@ -92,16 +96,16 @@ class PatchDenoise(BaseInterface):
         else:
             mask = None
         try:
-            denoise_func = DENOISER_MAP[self.inputs.method]
+            denoise_func = DENOISER_MAP[self.inputs.denoise_method]
         except KeyError:
             raise ValueError(
-                f"unknown denoising method '{self.inputs.method}', available are {list(DENOISER_MAP.keys())}"
+                f"unknown denoising denoise_method '{self.inputs.denoise_method}', available are {list(DENOISER_MAP.keys())}"
             )
         if isdefined(self.inputs.extra_kwargs) and self.inputs.extra_kwargs:
             extra_kwargs = self.inputs.extra_kwargs
         else:
             extra_kwargs =  dict()
-        if self.inputs.method in ["nordic"]:
+        if self.inputs.denoise_method in ["nordic"]:
             extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
         denoised_data, _, noise_std_map = denoise_func(
@@ -124,9 +128,12 @@ class PatchDenoise(BaseInterface):
     def _list_outputs(self):
         outputs = self._outputs().get()
         denoise_filename, noise_map_filename = self._get_filenames()
+        if self.inputs.denoise_method:
+            outputs["denoised_file"] = os.path.abspath(denoise_filename)
+            outputs["noise_std_map"] = os.path.abspath(noise_map_filename)
+        else:
+            outputs["denoised_file"] = self.inputs.in_file_mag
 
-        outputs["denoised_file"] = os.path.abspath(denoise_filename)
-        outputs["noise_std_map"] = os.path.abspath(noise_map_filename)
         return outputs
 
     def _get_filenames(self):
