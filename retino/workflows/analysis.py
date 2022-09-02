@@ -31,17 +31,18 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
         return Node(PhaseMap(threshold= self.threshold), "phase_map")
 
 
-    def build(self):
-        self._wf = Workflow(name="analysis", base_dir=self.working_dir)
+    def build(self, denoise_setting):
+        final_wf = Workflow(name="analysis", base_dir=self.working_dir)
 
-        in_fields = ["sub_id","denoising", "sequence"]
+        in_fields = ["sub_id","sequence", "denoise_method"]
+
         input_node = Node(
             IdentityInterface(fields= in_fields), name="infosource"
         )
         input_files = ["data_clock", "motion_clock", "data_anticlock", "motion_anticlock"]
         files = Node(
             nio.DataGrabber(
-                infields=in_fields,
+                infields=in_fields[:-1] if denoise_setting == "noisy" else in_fields,
                 outfields=input_files,
                 base_directory=self.basedata_dir,
                 sort_filelist=True,
@@ -49,42 +50,66 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
             ),
             name="selectfiles",
         )
-        files.inputs.field_template = {
-            "data_clock": f"sub_%02i/preprocess/%s/*%s_Clock*.nii",
-            "motion_clock": f"sub_%02i/preprocess/%s/*%s_Clock*.txt",
-            "data_anticlock": f"sub_%02i/preprocess/%s/*%s_AntiClock*.nii",
-            "motion_anticlock": f"sub_%02i/preprocess/%s/*%s_AntiClock*.txt",
-        }
-
-        files.inputs.template_args = {key: [in_fields] for key in input_files}
+        files.inputs.template_args = { key: [["sub_id", "sequence"]] for key in input_files}
+        if denoise_setting == "noisy":
+            files.inputs.field_template = {
+                "data_clock": f"sub_%02i/preprocess/noisy/*%s_ClockwiseTask_corrected.nii",
+                "motion_clock": f"sub_%02i/preprocess/noisy/*%s_ClockwiseTask.txt",
+                "data_anticlock": f"sub_%02i/preprocess/noisy/*%s_AntiClockwiseTask_corrected.nii",
+                "motion_anticlock": f"sub_%02i/preprocess/noisy/*%s_AntiClockwiseTask.txt",
+            }
+            # don't consider the denoise method input params for template format
+        else:
+            files.inputs.field_template = {
+                "data_clock": f"sub_%02i/preprocess/{denoise_setting}/*%s_ClockwiseTask_d_%s_corrected.nii",
+                "motion_clock": f"sub_%02i/preprocess/{denoise_setting}/*%s_ClockwiseTask.txt",
+                "data_anticlock": f"sub_%02i/preprocess/{denoise_setting}/*%s_AntiClockwiseTask_d_%s_corrected.nii",
+                "motion_anticlock": f"sub_%02i/preprocess/{denoise_setting}/*%s_AntiClockwiseTask.txt",
+            }
+            files.inputs.template_args["data_clock"] = [["sub_id", "sequence", "denoise_method"]]
+            files.inputs.template_args["data_anticlock"] = [["sub_id", "sequence", "denoise_method"]]
 
         c_glob = self._add_contrast(extra_name="glob")
 
+        def merge_list(clock, anticlock):
+            return [clock, anticlock]
 
         list_data = Node(Function(input_names=["clock", "anticlock"],
-                                  function=lambda clock, anticlock: [clock, anticlock]), "merge_data")
+                                  function=merge_list), "merge_data")
         list_design = Node(Function(input_names=["clock", "anticlock"],
-                                  function=lambda clock, anticlock: [clock, anticlock]), "merge_design")
+                                    function=merge_list), "merge_design")
 
         phase = self._add_phase_map()
 
         sinker = Node(nio.DataSink(), name="sinker")
         sinker.inputs.base_directory = self.basedata_dir
         sinker.parameterization = False
-
+        sinker.inputs.substitutions = [("_denoise_method_", "")]
+        out_dir = f"stats.{denoise_setting}.@"
 
         connect_list=[
             (
                 input_node,
                 files,
-                [("sub_id", "sub_id"), ("sequence", "sequence")],
+                [(a,a) for a in in_fields],
             ),
             (list_design, c_glob, [("out", "design_matrices")]),
             (list_data, c_glob, [("out", "fmri_timeseries")]),
             (
                 c_glob,
                 sinker,
-                [(("rot_stat", get_key, "z_score"), "stats.@rot_z")],
+                [(("rot_stat", get_key, "z_score"), out_dir+"rot_z")],
+            ),
+            (
+                c_glob,
+                phase,
+                [(("rot_stat", get_key, "z_score"), "rot_glob"),
+                 (("cos_stat", get_key, "z_score"), "cos_glob")]
+            ),
+            (
+                phase,
+                sinker,
+                [("phase_map", out_dir+"phase_map")]
             ),
             (
                 input_node,
@@ -116,17 +141,18 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
                                  ))
             connect_list.append((c_node, sinker,
                                 [
-                                    (("cos_stat", get_key, "z_score"), f"stats.@cos_{name}_z"),
-                                    (("sin_stat", get_key, "z_score"), f"stats.@sin_{name}_z"),
+                                    (("cos_stat", get_key, "z_score"), out_dir+f"cos_{name}_z"),
+                                    (("sin_stat", get_key, "z_score"), out_dir+f"sin_{name}_z"),
                                 ]))
             # merge design_matrix and data to list for global contrast input.
             connect_list.append((d_node, list_design, [("design_matrix", name)]))
             connect_list.append((files, list_data, [(f"data_{name}", name)]))
 
-        self._wf.connect(connect_list)
-        return self._wf
+        final_wf.connect(connect_list)
+        return final_wf
 
-    def run(self, iter_on=None, plugin=None):
+    def run(self, wf, iter_on=None, sequence=None, plugin=None):
+        wf.get_node("infosource").inputs.sequence = sequence
         if iter_on is not None:
-            self._wf.get_node("infosource").iterables = iter_on
-        self._wf.run(plugin)
+            wf.get_node("infosource").iterables = iter_on
+        return wf.run(plugin)
