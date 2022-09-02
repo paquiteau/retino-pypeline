@@ -89,7 +89,7 @@ class PatchDenoise(BaseInterface):
                 2 * np.pi * (phase - np.min(phase)) / (np.max(phase) - np.min(phase))
             )
             # combine to get complex data
-            data = np.complex64(data) * np.exp(1j * phase)
+            data = np.complex64(data) * np.complex64(np.exp(1j * phase))
 
         if isdefined(self.inputs.mask) and self.inputs.mask:
             mask = np.abs(nib.load(self.inputs.mask).get_fdata()) > 0
@@ -118,7 +118,7 @@ class PatchDenoise(BaseInterface):
         )
         denoise_filename, noise_map_filename = self._get_filenames()
 
-        denoised_data_img = nib.Nifti1Image(abs(denoised_data), affine=data_mag.affine)
+        denoised_data_img = nib.Nifti1Image(np.abs(denoised_data, dtype=np.float32), affine=data_mag.affine)
         denoised_data_img.to_filename(denoise_filename)
 
         noise_map_img = nib.Nifti1Image(noise_std_map, affine=data_mag.affine)
