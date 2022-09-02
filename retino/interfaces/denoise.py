@@ -78,7 +78,7 @@ class PatchDenoise(BaseInterface):
         data_mag = nib.load(self.inputs.in_file_mag)
 
         data = data_mag.get_fdata()
-        if self.inputs.denoise_method is None:
+        if not isdefined(self.inputs.denoise_method) or  self.inputs.denoise_method is  None:
             return runtime
 
         if isdefined(self.inputs.in_file_phase) and self.inputs.in_file_phase:
@@ -139,7 +139,7 @@ class PatchDenoise(BaseInterface):
     def _get_filenames(self):
         _, base, _ = split_filename(self.inputs.in_file_mag)
         base = base.replace("_mag", "")
-        return f"{base}_d_{self.inputs.method}.nii", f"{base}_noise_map.nii"
+        return f"{base}_d_{self.inputs.denoise_method}.nii", f"{base}_noise_map.nii"
 
 
 class NoiseStdMapInputSpec(BaseInterfaceInputSpec):
