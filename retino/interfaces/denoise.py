@@ -23,7 +23,6 @@ from denoiser.denoise import hybrid_pca, mp_pca, nordic, optimal_thresholding, r
 from denoiser.space_time.utils import estimate_noise
 
 
-
 DENOISER_MAP = {
     None: None,
     "mp-pca": mp_pca,
@@ -78,7 +77,10 @@ class PatchDenoise(BaseInterface):
         data_mag = nib.load(self.inputs.in_file_mag)
 
         data = data_mag.get_fdata()
-        if not isdefined(self.inputs.denoise_method) or  self.inputs.denoise_method is  None:
+        if (
+            not isdefined(self.inputs.denoise_method)
+            or self.inputs.denoise_method is None
+        ):
             return runtime
 
         if isdefined(self.inputs.in_file_phase) and self.inputs.in_file_phase:
@@ -104,7 +106,7 @@ class PatchDenoise(BaseInterface):
         if isdefined(self.inputs.extra_kwargs) and self.inputs.extra_kwargs:
             extra_kwargs = self.inputs.extra_kwargs
         else:
-            extra_kwargs =  dict()
+            extra_kwargs = dict()
         if self.inputs.denoise_method in ["nordic"]:
             extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
@@ -118,7 +120,9 @@ class PatchDenoise(BaseInterface):
         )
         denoise_filename, noise_map_filename = self._get_filenames()
 
-        denoised_data_img = nib.Nifti1Image(np.abs(denoised_data, dtype=np.float32), affine=data_mag.affine)
+        denoised_data_img = nib.Nifti1Image(
+            np.abs(denoised_data, dtype=np.float32), affine=data_mag.affine
+        )
         denoised_data_img.to_filename(denoise_filename)
 
         noise_map_img = nib.Nifti1Image(noise_std_map, affine=data_mag.affine)
@@ -178,10 +182,11 @@ class NoiseStdMap(BaseInterface):
 
 
 class MaskInputSpec(BaseInterfaceInputSpec):
-    in_file = File(exists=True, desc = "A fMRI input file.")
+    in_file = File(exists=True, desc="A fMRI input file.")
+
 
 class MaskOutputSpec(TraitedSpec):
-    mask = File(exists=True, desc = "the mask of a ROI")
+    mask = File(exists=True, desc="the mask of a ROI")
 
 
 class Mask(BaseInterface):

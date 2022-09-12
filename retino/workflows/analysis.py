@@ -1,11 +1,15 @@
-
-from retino.workflows.base import BaseWorkflowFactory, node_name, getsubid, subid_varname, get_key
+from retino.workflows.base import (
+    BaseWorkflowFactory,
+    node_name,
+    getsubid,
+    subid_varname,
+    get_key,
+)
 
 from retino.interfaces.glm import DesignMatrixRetino, PhaseMap, ContrastRetino
 
 import nipype.interfaces.io as nio
 from nipype import Node, Workflow, Function, IdentityInterface
-
 
 
 class AnalysisWorkflowFactory(BaseWorkflowFactory):
@@ -14,32 +18,39 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
         self.working_dir = working_dir
         self.n_cycles = n_cycles
         self.TR = TR
-        self.threshold=threshold
+        self.threshold = threshold
 
     def _add_design_matrix(self, clockwise=True, extra_name=""):
-        return Node(DesignMatrixRetino(
-            n_cycles = self.n_cycles,
-            volumetric_tr = self.TR,
-            clockwise_rotation=clockwise
-        ), node_name("design", extra_name))
+        return Node(
+            DesignMatrixRetino(
+                n_cycles=self.n_cycles,
+                volumetric_tr=self.TR,
+                clockwise_rotation=clockwise,
+            ),
+            node_name("design", extra_name),
+        )
 
     def _add_contrast(self, extra_name=""):
-        return Node(ContrastRetino(volumetric_tr=self.TR),
-               name=node_name("contrast", extra_name))
+        return Node(
+            ContrastRetino(volumetric_tr=self.TR),
+            name=node_name("contrast", extra_name),
+        )
 
     def _add_phase_map(self):
-        return Node(PhaseMap(threshold= self.threshold), "phase_map")
-
+        return Node(PhaseMap(threshold=self.threshold), "phase_map")
 
     def build(self, denoise_setting):
         final_wf = Workflow(name="analysis", base_dir=self.working_dir)
 
-        in_fields = ["sub_id","sequence", "denoise_method"]
+        in_fields = ["sub_id", "sequence", "denoise_method"]
 
-        input_node = Node(
-            IdentityInterface(fields= in_fields), name="infosource"
-        )
-        input_files = ["data_clock", "motion_clock", "data_anticlock", "motion_anticlock"]
+        input_node = Node(IdentityInterface(fields=in_fields), name="infosource")
+        input_files = [
+            "data_clock",
+            "motion_clock",
+            "data_anticlock",
+            "motion_anticlock",
+        ]
         files = Node(
             nio.DataGrabber(
                 infields=in_fields[:-1] if denoise_setting == "noisy" else in_fields,
@@ -50,7 +61,9 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
             ),
             name="selectfiles",
         )
-        files.inputs.template_args = { key: [["sub_id", "sequence"]] for key in input_files}
+        files.inputs.template_args = {
+            key: [["sub_id", "sequence"]] for key in input_files
+        }
         if denoise_setting == "noisy":
             files.inputs.field_template = {
                 "data_clock": f"sub_%02i/preprocess/noisy/*%s_ClockwiseTask_corrected.nii",
@@ -66,18 +79,26 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
                 "data_anticlock": f"sub_%02i/preprocess/{denoise_setting}/*%s_AntiClockwiseTask_d_%s_corrected.nii",
                 "motion_anticlock": f"sub_%02i/preprocess/{denoise_setting}/*%s_AntiClockwiseTask.txt",
             }
-            files.inputs.template_args["data_clock"] = [["sub_id", "sequence", "denoise_method"]]
-            files.inputs.template_args["data_anticlock"] = [["sub_id", "sequence", "denoise_method"]]
+            files.inputs.template_args["data_clock"] = [
+                ["sub_id", "sequence", "denoise_method"]
+            ]
+            files.inputs.template_args["data_anticlock"] = [
+                ["sub_id", "sequence", "denoise_method"]
+            ]
 
         c_glob = self._add_contrast(extra_name="glob")
 
         def merge_list(clock, anticlock):
             return [clock, anticlock]
 
-        list_data = Node(Function(input_names=["clock", "anticlock"],
-                                  function=merge_list), "merge_data")
-        list_design = Node(Function(input_names=["clock", "anticlock"],
-                                    function=merge_list), "merge_design")
+        list_data = Node(
+            Function(input_names=["clock", "anticlock"], function=merge_list),
+            "merge_data",
+        )
+        list_design = Node(
+            Function(input_names=["clock", "anticlock"], function=merge_list),
+            "merge_design",
+        )
 
         phase = self._add_phase_map()
 
@@ -87,30 +108,28 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
         sinker.inputs.substitutions = [("_denoise_method_", "")]
         out_dir = f"stats.{denoise_setting}.@"
 
-        connect_list=[
+        connect_list = [
             (
                 input_node,
                 files,
-                [(a,a) for a in in_fields],
+                [(a, a) for a in in_fields],
             ),
             (list_design, c_glob, [("out", "design_matrices")]),
             (list_data, c_glob, [("out", "fmri_timeseries")]),
             (
                 c_glob,
                 sinker,
-                [(("rot_stat", get_key, "z_score"), out_dir+"rot_z")],
+                [(("rot_stat", get_key, "z_score"), out_dir + "rot_z")],
             ),
             (
                 c_glob,
                 phase,
-                [(("rot_stat", get_key, "z_score"), "rot_glob"),
-                 (("cos_stat", get_key, "z_score"), "cos_glob")]
+                [
+                    (("rot_stat", get_key, "z_score"), "rot_glob"),
+                    (("cos_stat", get_key, "z_score"), "cos_glob"),
+                ],
             ),
-            (
-                phase,
-                sinker,
-                [("phase_map", out_dir+"phase_map")]
-            ),
+            (phase, sinker, [("phase_map", out_dir + "phase_map")]),
             (
                 input_node,
                 sinker,
@@ -121,29 +140,43 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
             ),
         ]
 
-        for name in ["clock","anticlock"]:
-            d_node = self._add_design_matrix(clockwise= name == "clock", extra_name=name)
+        for name in ["clock", "anticlock"]:
+            d_node = self._add_design_matrix(clockwise=name == "clock", extra_name=name)
             c_node = self._add_contrast(extra_name=name)
-            connect_list.append((files, d_node,
-                                 [
-                                     (f"data_{name}", "data_file"),
-                                     (f"motion_{name}", "motion_file"),
-                                 ]
-                                 ))
-            connect_list.append((d_node, c_node, [("design_matrix", "design_matrices")]))
+            connect_list.append(
+                (
+                    files,
+                    d_node,
+                    [
+                        (f"data_{name}", "data_file"),
+                        (f"motion_{name}", "motion_file"),
+                    ],
+                )
+            )
+            connect_list.append(
+                (d_node, c_node, [("design_matrix", "design_matrices")])
+            )
             connect_list.append((files, c_node, [(f"data_{name}", "fmri_timeseries")]))
-            connect_list.append((c_node,
-                                 phase,
-                                 [
-                                     (("cos_stat", get_key, "z_score"), f"cos_{name}"),
-                                     (("sin_stat", get_key, "z_score"), f"sin_{name}"),
-                                 ]
-                                 ))
-            connect_list.append((c_node, sinker,
-                                [
-                                    (("cos_stat", get_key, "z_score"), out_dir+f"cos_{name}_z"),
-                                    (("sin_stat", get_key, "z_score"), out_dir+f"sin_{name}_z"),
-                                ]))
+            connect_list.append(
+                (
+                    c_node,
+                    phase,
+                    [
+                        (("cos_stat", get_key, "z_score"), f"cos_{name}"),
+                        (("sin_stat", get_key, "z_score"), f"sin_{name}"),
+                    ],
+                )
+            )
+            connect_list.append(
+                (
+                    c_node,
+                    sinker,
+                    [
+                        (("cos_stat", get_key, "z_score"), out_dir + f"cos_{name}_z"),
+                        (("sin_stat", get_key, "z_score"), out_dir + f"sin_{name}_z"),
+                    ],
+                )
+            )
             # merge design_matrix and data to list for global contrast input.
             connect_list.append((d_node, list_design, [("design_matrix", name)]))
             connect_list.append((files, list_data, [(f"data_{name}", name)]))
