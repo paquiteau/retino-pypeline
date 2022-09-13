@@ -214,7 +214,6 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
                 out_node,
                 [("out.coreg_func", "processed_func"), ("out.coreg_anat", "anat")],
             ),
-            (realign, out_node, [("realignment_parameters", "motion")]),
         ]
 
         if realign_cached:
@@ -235,6 +234,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
 
         connections += [
             (realign, denoise_wf, [("realigned_files", "in.data")]),
+            (realign, out_node, [("realignment_parameters", "motion")]),
             (
                 in_node,
                 denoise_wf,
@@ -426,13 +426,12 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         ]
 
         if denoise:
-            wf_mask = self._make_predenoise_wf(denoise_p, sequence)
             proxy_node = Node(
                 IdentityInterface(fields=["mask", "noise_std_map", "denoise_method"]),
                 name="proxy_denoise",
             )
+            wf_mask = self._make_predenoise_wf(denoise_p, sequence)
             connections += [(in_node, wf_mask, [("sub_id", "in.sub_id")])]
-
             connections += [
                 (
                     wf_mask,
