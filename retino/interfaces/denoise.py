@@ -16,6 +16,7 @@ from nipype.interfaces.base import (
 
 from nipype.utils.filemanip import split_filename
 
+from skimage.morphology import convex_hull_image
 from nipy.labs.mask import compute_mask
 
 
@@ -199,6 +200,9 @@ class Mask(BaseInterface):
         avg = np.mean(data.get_fdata(), axis=-1)
 
         mask = np.uint8(compute_mask(avg))
+        for i in range(mask.shape[-1]):
+            mask[..., i] = convex_hull_image(mask[..., i])
+
         mask_nii = nib.Nifti1Image(mask, affine=data.affine)
 
         self._output_name = os.path.basename(self.inputs.in_file) + "_mask.nii"
