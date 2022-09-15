@@ -10,7 +10,8 @@ import nipype.interfaces.spm as spm
 from nipype import IdentityInterface, Function, Node, Workflow
 
 
-from retino.interfaces.denoise import NoiseStdMap, PatchDenoise, Mask
+from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
+from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
 from retino.interfaces.motion import RigidMotion
 
