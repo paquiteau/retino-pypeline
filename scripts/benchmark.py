@@ -73,8 +73,9 @@ def run_preprocess(namespace):
         patch_shape=namespace.patch_size,
         patch_overlap=namespace.patch_overlap,
         recombination="weighted",
-        realign_cached= namespace.process in ["realign-cached", "both"],
-        use_phase=namespace.use_phase
+        mask_threshold=20,
+        realign_cached=namespace.process in ["realign-cached", "both"],
+        use_phase=namespace.use_phase,
     )
     fname = preprocessing_wf_factory.show_graph(workflow)
     print(workflow.list_node_names())
