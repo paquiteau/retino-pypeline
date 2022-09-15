@@ -28,6 +28,7 @@ class DenoiseParameters:
     patch_overlap: int = 0
     recombination: str = "weighted"  # "center" is also available
     use_phase: bool = False  # denoise using complex images.
+    mask_threshold: int = 50
 
     @property
     def pretty_name(self):
@@ -300,7 +301,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             )
 
         # match input parameters to denoise node interface
-        for attr in ["patch_shape", "patch_overlap", "recombination"]:
+        for attr in ["patch_shape", "patch_overlap", "recombination", "mask_threshold"]:
             setattr(d_node.inputs, attr, getattr(denoise_parameters, attr))
 
         connections = [
@@ -369,6 +370,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         patch_shape=11,
         patch_overlap=0,
         use_phase=False,
+        mask_threshold=50,
         recombination="weighted",
         realign_cached=True,
     ):
@@ -393,6 +395,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             patch_overlap=patch_overlap,
             recombination=recombination,
             use_phase=use_phase,
+            mask_threshold=mask_threshold,
         )
 
         wf_name = "preprocess"

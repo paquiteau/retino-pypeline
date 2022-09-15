@@ -56,6 +56,7 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
         traits.Int(), traits.List(traits.Int(), minlen=3, maxlen=3)
     )
     mask = File(exists=True)
+    mask_threshold = traits.Int(50)
     recombination = traits.Enum("weighted", "mean")
     extra_kwargs = traits.Dict()
 
@@ -113,6 +114,7 @@ class PatchDenoise(BaseInterface):
             patch_shape=self.inputs.patch_shape,
             patch_overlap=self.inputs.patch_overlap,
             mask=mask,
+            mask_treshold=self.inputs.mask_threshold,
             recombination=self.inputs.recombination,
             **extra_kwargs,
         )
