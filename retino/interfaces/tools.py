@@ -72,25 +72,26 @@ class TSNR(BaseInterface):
 
     def _run_interface(self, runtime):
 
-        data = nib.load(self.inputs.in_file)
-        avg = np.mean(data.get_fdata(), axis=-1)
+        nii = nib.load(self.inputs.in_file)
+        data = nii.get_fdata()
+        avg = np.mean(data, axis=-1)
         tsnr = np.empty_like(avg)
 
         if isdefined(self.inputs.mask_file) and self.inputs.mask_file:
-            mask = nib.load(self.inputs.mask_file)
+            mask = nib.load(self.inputs.mask_file).get_fdata() > 0
             data = data * mask[..., None]
         else:
             mask = np.ones_like(avg, dtype=np.int8)
 
-        std = np.std(data.get_fdata()[mask], axis=-1)
+        std = np.std(data[mask], axis=-1)
         tsnr[mask] = avg[mask] / std
 
-        tsnr_nii = nib.Nifti1Image(tsnr, affine=data.affine)
+        tsnr_nii = nib.Nifti1Image(tsnr, affine=nii.affine)
 
         self._output_name = os.path.basename(self.inputs.in_file) + "_tsnr.nii"
         tsnr_nii.to_filename(self._output_name)
 
-    def _list_outputs():
+    def _list_outputs(self):
         outputs = self._outputs().get()
         outputs["tsnr_file"] = os.path.abspath(self._output_name)
-        return ouutputs
+        return outputs
