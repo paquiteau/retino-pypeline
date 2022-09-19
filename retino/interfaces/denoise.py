@@ -114,7 +114,7 @@ class PatchDenoise(BaseInterface):
             patch_shape=self.inputs.patch_shape,
             patch_overlap=self.inputs.patch_overlap,
             mask=mask,
-            mask_treshold=self.inputs.mask_threshold,
+            mask_threshold=self.inputs.mask_threshold,
             recombination=self.inputs.recombination,
             **extra_kwargs,
         )
