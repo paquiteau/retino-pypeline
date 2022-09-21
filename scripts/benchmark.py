@@ -7,7 +7,7 @@ from retino.workflows.preprocessing import (
     PreprocessingWorkflowFactory,
     RealignWorkflowFactory,
 )
-from retino.workflows.analysis import AnalysisWorkflowFactory
+from retino.workflows.analysis import AnalysisWorkflowFactory, FirstLevelStatFactory
 
 DATA_DIR = "/mnt/data/dataset/data"
 
@@ -28,6 +28,7 @@ PROCESS = [
     "realign-cached",
     "glm",
     "both",
+    "stats",
     "all",
 ]
 
@@ -133,7 +134,31 @@ def run_glm(namespace):
         wf = analysis_factory.build(
             f"{namespace.patch_size}_{namespace.patch_overlap}w"
         )
-        analysis_factory.run(
+    analysis_factory.run(
+            wf,
+            iter_on=[
+                ("sub_id", namespace.sub),
+                ("denoise_method", [namespace.denoiser]),
+            ],
+            sequence=namespace.sequence,
+            plugin="MultiProc",
+        )
+def run_stats(namespace):
+
+    stats_factory = FirstLevelStatFactory(
+        namespace.dataset,
+        namespace.tmpdir,
+    )
+    if namespace.denoiser == "noisy":
+        wf = stats_factory.build(
+            namespace.denoiser,
+        )
+
+    else:
+        wf = stats_factory.build(
+            f"{namespace.patch_size}_{namespace.patch_overlap}w"
+        )
+    stats_factory.run(
             wf,
             iter_on=[
                 ("sub_id", namespace.sub),
@@ -144,15 +169,16 @@ def run_glm(namespace):
         )
 
 
+
 if __name__ == "__main__":
 
     namespace = parser.parse_args()
-    set_patch_values(namespace)
 
     if namespace.denoiser == "noisy" or namespace.denoiser is None:
         namespace.denoiser = "noisy"
         namespace.use_phase = False
-
+    else:
+        set_patch_values(namespace)
     print(namespace)
 
     if namespace.process == "realign":
@@ -164,6 +190,8 @@ if __name__ == "__main__":
     elif namespace.process == "both":
         run_preprocess(namespace)
         run_glm(namespace)
+    elif namespace.process == "stats":
+        run_stats(namespace)
     elif namespace.process == "all":
         run_preprocess(namespace)
         run_glm(namespace)
