@@ -18,7 +18,7 @@ from nipy.labs.mask import compute_mask
 
 class MaskInputSpec(BaseInterfaceInputSpec):
     in_file = File(exists=True, mandatory=True, desc="A fMRI input file.")
-
+    use_mean = traits.Bool(True, mandatory=False, desc = "Compute the brain mask using the mean image (over the last dimension)")
 
 class MaskOutputSpec(TraitedSpec):
     mask = File(desc="the mask of a ROI")
@@ -33,15 +33,18 @@ class Mask(BaseInterface):
     def _run_interface(self, runtime):
         data = nib.load(self.inputs.in_file)
 
-        avg = np.mean(data.get_fdata(), axis=-1)
+        if self.inputs.use_mean:
+            avg = np.mean(data.get_fdata(), axis=-1)
+        else:
+            avg = data.get_fdata()
 
         mask = np.uint8(compute_mask(avg))
-        for i in range(mask.shape[-1]):
-            mask[..., i] = convex_hull_image(mask[..., i])
+        # for i in range(mask.shape[-1]):
+        #     mask[..., i] = convex_hull_image(mask[..., i])
 
         mask_nii = nib.Nifti1Image(mask, affine=data.affine)
 
-        self._output_name = os.path.basename(self.inputs.in_file) + "_mask.nii"
+        self._output_name = os.path.basename(self.inputs.in_file).split(".")[0] + "_mask.nii"
 
         mask_nii.to_filename(self._output_name)
 
