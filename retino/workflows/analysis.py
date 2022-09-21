@@ -7,50 +7,37 @@ from retino.workflows.base import (
 )
 
 from retino.interfaces.glm import DesignMatrixRetino, PhaseMap, ContrastRetino
-
+from retino.interfaces.tools import Mask, TSNR
 import nipype.interfaces.io as nio
 from nipype import Node, Workflow, Function, IdentityInterface
 
 
-class AnalysisWorkflowFactory(BaseWorkflowFactory):
-    def __init__(self, basedata_dir, working_dir, n_cycles, TR, threshold=0.001):
+class BaseAnalysisWorkflowFactory(BaseWorkflowFactory):
+    def __init__(self, basedata_dir, working_dir):
         self.basedata_dir = basedata_dir
         self.working_dir = working_dir
-        self.n_cycles = n_cycles
-        self.TR = TR
-        self.threshold = threshold
 
-    def _add_design_matrix(self, clockwise=True, extra_name=""):
-        return Node(
-            DesignMatrixRetino(
-                n_cycles=self.n_cycles,
-                volumetric_tr=self.TR,
-                clockwise_rotation=clockwise,
-            ),
-            node_name("design", extra_name),
-        )
+    def run(self, wf, iter_on=None, sequence=None, plugin=None):
+        wf.get_node("infosource").inputs.sequence = sequence
+        if iter_on is not None:
+            wf.get_node("infosource").iterables = iter_on
+        return wf.run(plugin)
 
-    def _add_contrast(self, extra_name=""):
-        return Node(
-            ContrastRetino(volumetric_tr=self.TR),
-            name=node_name("contrast", extra_name),
-        )
-
-    def _add_phase_map(self):
-        return Node(PhaseMap(threshold=self.threshold), "phase_map")
-
-    def build(self, denoise_setting):
-        final_wf = Workflow(name="analysis", base_dir=self.working_dir)
+    def build(self, denoise_setting, name):
+        final_wf = Workflow(name=name+denoise_setting, base_dir=self.working_dir)
 
         in_fields = ["sub_id", "sequence", "denoise_method"]
 
         input_node = Node(IdentityInterface(fields=in_fields), name="infosource")
+
         input_files = [
             "data_clock",
             "motion_clock",
             "data_anticlock",
             "motion_anticlock",
+            "mask"
         ]
+
         files = Node(
             nio.DataGrabber(
                 infields=in_fields[:-1] if denoise_setting == "noisy" else in_fields,
@@ -86,6 +73,60 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
                 ["sub_id", "sequence", "denoise_method"]
             ]
 
+        sinker = Node(nio.DataSink(), name="sinker")
+        sinker.inputs.base_directory = self.basedata_dir
+        sinker.parameterization = False
+        sinker.inputs.substitutions = [("_denoise_method_", "")]
+
+        final_wf.connect(
+            [
+                (input_node, files, [(a, a) for a in in_fields]),
+                (
+                    input_node,
+                    sinker,
+                    [
+                        (("sub_id", getsubid), "container"),
+                        (("sub_id", subid_varname), "strip_dir"),
+                    ],
+                ),
+            ]
+        )
+        return final_wf
+
+
+class AnalysisWorkflowFactory(BaseAnalysisWorkflowFactory):
+    def __init__(self, basedata_dir, working_dir, n_cycles, TR, threshold=0.001):
+        self.basedata_dir = basedata_dir
+        self.working_dir = working_dir
+        self.n_cycles = n_cycles
+        self.TR = TR
+        self.threshold = threshold
+
+    def _add_design_matrix(self, clockwise=True, extra_name=""):
+        return Node(
+            DesignMatrixRetino(
+                n_cycles=self.n_cycles,
+                volumetric_tr=self.TR,
+                clockwise_rotation=clockwise,
+            ),
+            node_name("design", extra_name),
+        )
+
+    def _add_contrast(self, extra_name=""):
+        return Node(
+            ContrastRetino(volumetric_tr=self.TR),
+            name=node_name("contrast", extra_name),
+        )
+
+    def _add_phase_map(self):
+        return Node(PhaseMap(threshold=self.threshold), "phase_map")
+
+    def build(self, denoise_setting):
+
+        final_wf = super().build(denoise_setting, name="analysis")
+
+        files = final_wf.get_node("selectfiles")
+        sinker = final_wf.get_node("sinker")
         c_glob = self._add_contrast(extra_name="glob")
 
         def merge_list(clock, anticlock):
@@ -102,18 +143,9 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
 
         phase = self._add_phase_map()
 
-        sinker = Node(nio.DataSink(), name="sinker")
-        sinker.inputs.base_directory = self.basedata_dir
-        sinker.parameterization = False
-        sinker.inputs.substitutions = [("_denoise_method_", "")]
         out_dir = f"stats.{denoise_setting}.@"
 
         connect_list = [
-            (
-                input_node,
-                files,
-                [(a, a) for a in in_fields],
-            ),
             (list_design, c_glob, [("out", "design_matrices")]),
             (list_data, c_glob, [("out", "fmri_timeseries")]),
             (
@@ -130,62 +162,72 @@ class AnalysisWorkflowFactory(BaseWorkflowFactory):
                 ],
             ),
             (phase, sinker, [("phase_map", out_dir + "phase_map")]),
-            (
-                input_node,
-                sinker,
-                [
-                    (("sub_id", getsubid), "container"),
-                    (("sub_id", subid_varname), "strip_dir"),
-                ],
-            ),
         ]
 
         for name in ["clock", "anticlock"]:
             d_node = self._add_design_matrix(clockwise=name == "clock", extra_name=name)
             c_node = self._add_contrast(extra_name=name)
-            connect_list.append(
-                (
-                    files,
-                    d_node,
-                    [
-                        (f"data_{name}", "data_file"),
-                        (f"motion_{name}", "motion_file"),
-                    ],
-                )
+            connect_list.extend(
+                [
+                    (
+                        files,
+                        d_node,
+                        [
+                            (f"data_{name}", "data_file"),
+                            (f"motion_{name}", "motion_file"),
+                        ],
+                    ),
+                    (files, c_node, [(f"data_{name}", "fmri_timeseries")]),
+                    (files, list_data, [(f"data_{name}", name)]),
+                    (d_node, c_node, [("design_matrix", "design_matrices")]),
+                    (d_node, list_design, [("design_matrix", name)]),
+                    (
+                        c_node,
+                        phase,
+                        [
+                            (("cos_stat", get_key, "z_score"), f"cos_{name}"),
+                            (("sin_stat", get_key, "z_score"), f"sin_{name}"),
+                        ],
+                    ),
+                    (
+                        c_node,
+                        sinker,
+                        [
+                            (
+                                ("cos_stat", get_key, "z_score"),
+                                out_dir + f"cos_{name}_z",
+                            ),
+                            (
+                                ("sin_stat", get_key, "z_score"),
+                                out_dir + f"sin_{name}_z",
+                            ),
+                        ],
+                    ),
+                ]
             )
-            connect_list.append(
-                (d_node, c_node, [("design_matrix", "design_matrices")])
-            )
-            connect_list.append((files, c_node, [(f"data_{name}", "fmri_timeseries")]))
-            connect_list.append(
-                (
-                    c_node,
-                    phase,
-                    [
-                        (("cos_stat", get_key, "z_score"), f"cos_{name}"),
-                        (("sin_stat", get_key, "z_score"), f"sin_{name}"),
-                    ],
-                )
-            )
-            connect_list.append(
-                (
-                    c_node,
-                    sinker,
-                    [
-                        (("cos_stat", get_key, "z_score"), out_dir + f"cos_{name}_z"),
-                        (("sin_stat", get_key, "z_score"), out_dir + f"sin_{name}_z"),
-                    ],
-                )
-            )
-            # merge design_matrix and data to list for global contrast input.
-            connect_list.append((d_node, list_design, [("design_matrix", name)]))
-            connect_list.append((files, list_data, [(f"data_{name}", name)]))
 
         final_wf.connect(connect_list)
         return final_wf
 
-    def run(self, wf, iter_on=None, sequence=None, plugin=None):
-        wf.get_node("infosource").inputs.sequence = sequence
-        if iter_on is not None:
-            wf.get_node("infosource").iterables = iter_on
-        return wf.run(plugin)
+
+class FirstLevelStatFactory(BaseAnalysisWorkflowFactory):
+    def build(self, denoise_setting):
+        final_wf = super().build(denoise_setting, name="stats")
+
+        files = final_wf.get_node("selectfiles")
+        files.inputs.field_template["mask"] = f"sub_%02i/preprocess/{denoise_setting}/*_mask.nii",
+        files.inputs.template_args["mask"] = [["sub_id"]]
+
+        sinker = final_wf.get_node("sinker")
+
+        out_dir = f"stats.{denoise_setting}.@"
+
+        for mode in ["clock", "anticlock"]:
+            tsnr = Node(TSNR(), "tsnr_"+mode)
+            final_wf.connect([
+                (files, tsnr, [(f"data_{mode}", "in_file"),
+                               ("anat", "mask_file")]),
+                (tsnr, sinker, [("tsnr_file", out_dir+f"tsnr_{mode}")]),
+            ])
+
+        return final_wf
