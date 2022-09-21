@@ -81,15 +81,6 @@ def glm_phase_map(cos_clock, sin_clock, cos_anticlock, sin_anticlock):
         np.pi / 2,
     )
     # from Zaineb code.
-    hemo = 0.5 * (phase_clock - phase_anticlock)
-    hemo += np.pi * (hemo < 0)
-    hemo += np.pi * (hemo < 0)
-    pr1 = -phase_clock + hemo
-    pr2 = hemo + phase_anticlock
-    pr2[(pr1 - pr2) > np.pi] += 2 * np.pi
-    pr2[(pr1 - pr2) > np.pi] += 2 * np.pi
-    pr1[(pr2 - pr1) > np.pi] += 2 * np.pi
-    pr1[(pr2 - pr1) > np.pi] += 2 * np.pi
 
     phase = 0.5 * (phase_clock - phase_anticlock)
     phase += np.pi / 2
@@ -97,5 +88,4 @@ def glm_phase_map(cos_clock, sin_clock, cos_anticlock, sin_anticlock):
     phase += 2 * np.pi * (phase < -np.pi)
     phase -= 2 * np.pi * (phase > np.pi)
     phase -= 2 * np.pi * (phase > np.pi)
-    print(pr1.min(), pr1.max(), pr2.min(), pr2.max(), phase.min(), phase.max())
     return phase
