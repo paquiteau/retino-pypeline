@@ -110,7 +110,7 @@ class PatchDenoise(BaseInterface):
             extra_kwargs = self.inputs.extra_kwargs
         else:
             extra_kwargs = dict()
-        if self.inputs.denoise_method in ["nordic"]:
+        if self.inputs.denoise_method in ["nordic", "hybrid-pca"]:
             extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
         denoised_data, _, noise_std_map = denoise_func(
