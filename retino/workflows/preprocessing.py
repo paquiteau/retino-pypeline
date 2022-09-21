@@ -13,7 +13,7 @@ from nipype import IdentityInterface, Function, Node, Workflow
 from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
 from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
-from retino.interfaces.motion import RigidMotion
+from retino.interfaces.motion import MotionRealImag
 
 MATLAB_CMD = "matlab -nosplash -nodesktop"
 N_THREADS = len(os.sched_getaffinity(0))
@@ -66,7 +66,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         realign.n_procs = 3
         return realign
 
-    def _add_topup_wf(self):
+    def _add_topup_wf(self, extra_name=""):
         in_topup = Node(IdentityInterface(fields=["blips", "blip_opposite"]), name="in")
         out_topup = Node(IdentityInterface(fields=["corrected"]), name="out")
         roi_ap = Node(fsl.ExtractROI(t_min=5, t_size=1), name="roi_ap")
@@ -95,7 +95,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         applytopup.inputs.method = "jac"
         applytopup.inputs.output_type = "NIFTI"
 
-        topup_wf = Workflow(name="topup", base_dir=self.working_dir)
+        topup_wf = Workflow(name="topup"+extra_name, base_dir=self.working_dir)
 
         topup_wf.connect(
             [
@@ -118,7 +118,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         )
         return topup_wf
 
-    def _add_coregistration_wf(self):
+    def _add_coregistration_wf(self, extra_name=""):
         in_node = Node(IdentityInterface(fields=["func", "anat"]), name="in")
         out_node = Node(
             IdentityInterface(fields=["coreg_func", "coreg_anat"]), name="out"
@@ -133,7 +133,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             matlab_cmd=MATLAB_CMD, resource_monitor=False, single_comp_thread=False
         )
 
-        coreg_wf = Workflow(name="coreg", base_dir=self.working_dir)
+        coreg_wf = Workflow(name="coreg"+extra_name, base_dir=self.working_dir)
 
         coreg_wf.connect(
             [
@@ -201,7 +201,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             ] = f"sub_%02i/func/*{sequence}_{name}wiseTask_phase.nii"
 
         files = self.__file_node(template)
-        coregister = self._add_coregistration_wf()
+        coregister = self._add_coregistration_wf(extra_name=name)
         realign = Node(
             IdentityInterface(["realignment_parameters", "realigned_files"]),
             "dummy_realign",
@@ -304,7 +304,18 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         for attr in ["patch_shape", "patch_overlap", "recombination", "mask_threshold"]:
             setattr(d_node.inputs, attr, getattr(denoise_parameters, attr))
 
-        connections = [
+        if denoise_parameters.use_phase:
+            rigid_motion = MotionRealImag()
+            connections += [
+                (
+                    input_node,
+                    rigid_motion,
+                    [("data_phase", "in_file"), ("motion", "motion_file")],
+                ),
+                (rigid_motion, d_node, [("out", "in_file_phase")]),
+            ]
+        else:
+            connections = [
             (
                 input_node,
                 d_node,
@@ -316,23 +327,13 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
                 ],
             ),
             (d_node, output_node, [("denoised_file", "denoised_file")]),
-        ]
-
-        if denoise_parameters.use_phase:
-            rigid_motion = Node(RigidMotion(), name="rigid_motion")
-
-            connections += [
-                (
-                    input_node,
-                    rigid_motion,
-                    [("data_phase", "in_file"), ("motion", "motion_file")],
-                ),
-                (rigid_motion, d_node, [("out", "in_file_phase")]),
             ]
+
+
         wf.connect(connections)
         return wf
 
-    def _make_predenoise_wf(self, denoise_params, sequence):
+    def _make_predenoise_wf(self, denoise_params, sequence, extra_name=""):
         in_node = Node(IdentityInterface(fields=["sub_id"]), name="in")
         out_node = Node(IdentityInterface(fields=["mask", "noise_std_map"]), name="out")
         template = {
@@ -348,9 +349,9 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             100  # Magic Number, needs to be configured elsewhere
         )
 
-        brain_mask = Node(Mask(), name="mask")
-
-        wf = Workflow(name="mask_std")
+        brain_mask = Node(Mask(use_mean=False), name="mask")
+        brain_mask.n_procs = 10
+        wf = Workflow(name="mask_std", base_dir = self.working_dir)
         wf.connect(
             [
                 (in_node, files, [("sub_id", "sub_id")]),
@@ -429,24 +430,26 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             )
         ]
 
-        if denoise:
-            proxy_node = Node(
-                IdentityInterface(fields=["mask", "noise_std_map", "denoise_method"]),
-                name="proxy_denoise",
-            )
-            wf_mask = self._make_predenoise_wf(denoise_p, sequence)
-            connections += [(in_node, wf_mask, [("sub_id", "in.sub_id")])]
-            connections += [
-                (
-                    wf_mask,
-                    proxy_node,
-                    [("out.mask", "mask"), ("out.noise_std_map", "noise_std_map")],
-                )
-            ]
+        proxy_node = Node(
+            IdentityInterface(fields=["mask", "noise_std_map", "denoise_method"]),
+            name="proxy_denoise",
+        )
+        wf_mask = self._make_predenoise_wf(denoise_p, sequence, extra_name=denoise_p.pretty_par)
+
         if denoise:
             out_folder = f"preprocess.{denoise_p.pretty_par}.@"
         else:
             out_folder = f"preprocess.noisy.@"
+
+        connections += [(in_node, wf_mask, [("sub_id", "in.sub_id")])]
+        connections += [
+            (
+                wf_mask,
+                proxy_node,
+                [("out.mask", "mask"), ("out.noise_std_map", "noise_std_map")],
+            ),
+            (proxy_node, sinker, [("mask", out_folder+"anat_mask")])
+        ]
 
         for name in ["Clock", "AntiClock"]:
             wf = self._make_inner_wf(
@@ -455,21 +458,17 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
                 sequence=sequence,
                 realign_cached=realign_cached,
             )
-            connections += [(in_node, wf, [("sub_id", "in.sub_id")])]
-            if denoise:
-                connections += [
-                    (
-                        proxy_node,
-                        wf,
-                        [
-                            ("mask", "in.mask"),
-                            ("noise_std_map", "in.noise_std_map"),
-                            ("denoise_method", "in.denoise_method"),
-                        ],
-                    )
-                ]
-
             connections += [
+                (in_node, wf, [("sub_id", "in.sub_id")]),
+                (
+                    proxy_node,
+                    wf,
+                    [
+                        ("mask", "in.mask"),
+                        ("noise_std_map", "in.noise_std_map"),
+                        ("denoise_method", "in.denoise_method"),
+                    ],
+                ),
                 (
                     wf,
                     sinker,
@@ -478,7 +477,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
                         ("out.processed_func", out_folder + f"func_{name}"),
                         ("out.motion", out_folder + f"motion_{name}"),
                     ],
-                )
+                ),
             ]
         final_wf.connect(connections)
         return final_wf, denoise_p
