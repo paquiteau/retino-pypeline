@@ -42,11 +42,15 @@ DENOISER_MAP = {
 class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
 
     in_file_mag = File(
-        exists=True, mandatory=True, desc="magnitude input file to denoise."
+        exists=True, mandatory=False, desc="magnitude input file to denoise."
     )
-    in_file_phase = File(
-        exists=True, mandatory=False, desc="phase input file to denoise."
+    in_file_real = File(
+        exists=True, xor=["in_file_mag"], mandatory=False, desc="phase input file to denoise."
     )
+    in_file_imag = File(
+        exists=True, xor=["in_file_mag"], require=["in_file_real"], mandatory=False, desc="phase input file to denoise."
+    )
+
     noise_std_map = File(desc="noise_std_map")
     denoise_method = traits.Enum(*DENOISER_MAP.keys())
     patch_shape = traits.Union(
@@ -73,24 +77,24 @@ class PatchDenoise(BaseInterface):
 
     def _run_interface(self, runtime):
 
-        data_mag = nib.load(self.inputs.in_file_mag)
+        if isdefined(self.inputs.in_file_mag):
+            data_mag = nib.load(self.inputs.in_file_mag)
 
-        data = data_mag.get_fdata()
-        if (
-            not isdefined(self.inputs.denoise_method)
-            or self.inputs.denoise_method is None
-        ):
-            return runtime
+            data = data_mag.get_fdata()
+            if (
+                not isdefined(self.inputs.denoise_method)
+                or self.inputs.denoise_method is None
+            ):
+                return runtime
 
-        if isdefined(self.inputs.in_file_phase) and self.inputs.in_file_phase:
+        if isdefined(self.inputs.in_file_imag) and  isdefined(self.intputs.in_file_real):
 
-            phase = nib.load(self.inputs.in_file_phase).get_fdata()
-            # put in [0, 2*pi], some stretching may happen...
-            phase = (
-                2 * np.pi * (phase - np.min(phase)) / (np.max(phase) - np.min(phase))
-            )
-            # combine to get complex data
-            data = np.complex64(data) * np.complex64(np.exp(1j * phase))
+
+            imag = nib.load(self.inputs.in_file_imag).get_fdata()
+            real = nib.load(self.inputs.in_file_real).get_fdata()
+            # no intermediary array
+            data = 1j * imag
+            data += real
 
         if isdefined(self.inputs.mask) and self.inputs.mask:
             mask = np.abs(nib.load(self.inputs.mask).get_fdata()) > 0
