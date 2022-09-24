@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "retino-pypeline"
+version = "0.0.0"
+description = "Simple fMRI pypeline manager, targeting retinotopy analysis."
+authors = ["Pierre-antoine Comby <pierre-antoine.comby@crans.org>"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+
+
+
+# Formatting using black.
+[tool.black]
