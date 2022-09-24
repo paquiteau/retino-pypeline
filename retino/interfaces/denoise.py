@@ -16,12 +16,9 @@ from nipype.interfaces.base import (
 
 from nipype.utils.filemanip import split_filename
 
-from nipy.labs.mask import compute_mask
-
 
 from denoiser.denoise import hybrid_pca, mp_pca, nordic, optimal_thresholding, raw_svt
 from denoiser.space_time.utils import estimate_noise
-
 
 
 DENOISER_MAP = {
@@ -45,11 +42,15 @@ DENOISER_MAP = {
 class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
 
     in_file_mag = File(
-        exists=True, mandatory=True, desc="magnitude input file to denoise."
+        exists=True, mandatory=False, desc="magnitude input file to denoise."
     )
-    in_file_phase = File(
-        exists=True, mandatory=False, desc="phase input file to denoise."
+    in_file_real = File(
+        exists=True, xor=["in_file_mag"], mandatory=False, desc="phase input file to denoise."
     )
+    in_file_imag = File(
+        exists=True, xor=["in_file_mag"], require=["in_file_real"], mandatory=False, desc="phase input file to denoise."
+    )
+
     noise_std_map = File(desc="noise_std_map")
     denoise_method = traits.Enum(*DENOISER_MAP.keys())
     patch_shape = traits.Union(
@@ -59,6 +60,7 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
         traits.Int(), traits.List(traits.Int(), minlen=3, maxlen=3)
     )
     mask = File(exists=True)
+    mask_threshold = traits.Int(50)
     recombination = traits.Enum("weighted", "mean")
     extra_kwargs = traits.Dict()
 
@@ -75,21 +77,24 @@ class PatchDenoise(BaseInterface):
 
     def _run_interface(self, runtime):
 
-        data_mag = nib.load(self.inputs.in_file_mag)
+        if isdefined(self.inputs.in_file_mag):
+            data_mag = nib.load(self.inputs.in_file_mag)
 
-        data = data_mag.get_fdata()
-        if self.inputs.denoise_method is None:
-            return runtime
+            data = data_mag.get_fdata()
+            if (
+                not isdefined(self.inputs.denoise_method)
+                or self.inputs.denoise_method is None
+            ):
+                return runtime
 
-        if isdefined(self.inputs.in_file_phase) and self.inputs.in_file_phase:
+        if isdefined(self.inputs.in_file_imag) and  isdefined(self.intputs.in_file_real):
 
-            phase = nib.load(self.inputs.in_file_phase).get_fdata()
-            # put in [0, 2*pi], some stretching may happen...
-            phase = (
-                2 * np.pi * (phase - np.min(phase)) / (np.max(phase) - np.min(phase))
-            )
-            # combine to get complex data
-            data = np.complex64(data) * np.exp(1j * phase)
+
+            imag = nib.load(self.inputs.in_file_imag).get_fdata()
+            real = nib.load(self.inputs.in_file_real).get_fdata()
+            # no intermediary array
+            data = 1j * imag
+            data += real
 
         if isdefined(self.inputs.mask) and self.inputs.mask:
             mask = np.abs(nib.load(self.inputs.mask).get_fdata()) > 0
@@ -104,8 +109,8 @@ class PatchDenoise(BaseInterface):
         if isdefined(self.inputs.extra_kwargs) and self.inputs.extra_kwargs:
             extra_kwargs = self.inputs.extra_kwargs
         else:
-            extra_kwargs =  dict()
-        if self.inputs.denoise_method in ["nordic"]:
+            extra_kwargs = dict()
+        if self.inputs.denoise_method in ["nordic", "hybrid-pca"]:
             extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
         denoised_data, _, noise_std_map = denoise_func(
@@ -113,12 +118,15 @@ class PatchDenoise(BaseInterface):
             patch_shape=self.inputs.patch_shape,
             patch_overlap=self.inputs.patch_overlap,
             mask=mask,
+            mask_threshold=self.inputs.mask_threshold,
             recombination=self.inputs.recombination,
             **extra_kwargs,
         )
         denoise_filename, noise_map_filename = self._get_filenames()
 
-        denoised_data_img = nib.Nifti1Image(abs(denoised_data), affine=data_mag.affine)
+        denoised_data_img = nib.Nifti1Image(
+            np.abs(denoised_data, dtype=np.float32), affine=data_mag.affine
+        )
         denoised_data_img.to_filename(denoise_filename)
 
         noise_map_img = nib.Nifti1Image(noise_std_map, affine=data_mag.affine)
@@ -139,7 +147,7 @@ class PatchDenoise(BaseInterface):
     def _get_filenames(self):
         _, base, _ = split_filename(self.inputs.in_file_mag)
         base = base.replace("_mag", "")
-        return f"{base}_d_{self.inputs.method}.nii", f"{base}_noise_map.nii"
+        return f"{base}_d_{self.inputs.denoise_method}.nii", f"{base}_noise_map.nii"
 
 
 class NoiseStdMapInputSpec(BaseInterfaceInputSpec):
@@ -175,33 +183,3 @@ class NoiseStdMap(BaseInterface):
             os.path.basename(self.inputs.noise_map_file) + "_std.nii"
         )
         return outputs
-
-
-class MaskInputSpec(BaseInterfaceInputSpec):
-    in_file = File(exists=True, desc = "A fMRI input file.")
-
-class MaskOutputSpec(TraitedSpec):
-    mask = File(exists=True, desc = "the mask of a ROI")
-
-
-class Mask(BaseInterface):
-    input_spec = MaskInputSpec
-    output_spec = MaskOutputSpec
-
-    def _run_interface(self, runtime):
-        data = nib.load(self.inputs.in_file)
-
-        avg = np.mean(data.get_fdata(), axis=-1)
-
-        mask = np.uint8(compute_mask(avg))
-        mask_nii = nib.Nifti1Image(mask, affine=data.affine)
-
-        self._output_name = os.path.basename(self.inputs.in_file) + "_mask.nii"
-
-        mask_nii.to_filename(self._output_name)
-
-        return runtime
-
-    def _list_outputs(self):
-        outputs = self._outputs().get()
-        outputs["mask"] = self._output_name
