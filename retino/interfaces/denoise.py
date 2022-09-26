@@ -45,10 +45,17 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
         exists=True, mandatory=False, desc="magnitude input file to denoise."
     )
     in_file_real = File(
-        exists=True, xor=["in_file_mag"], mandatory=False, desc="phase input file to denoise."
+        exists=True,
+        xor=["in_file_mag"],
+        mandatory=False,
+        desc="phase input file to denoise.",
     )
     in_file_imag = File(
-        exists=True, xor=["in_file_mag"], require=["in_file_real"], mandatory=False, desc="phase input file to denoise."
+        exists=True,
+        xor=["in_file_mag"],
+        require=["in_file_real"],
+        mandatory=False,
+        desc="phase input file to denoise.",
     )
 
     noise_std_map = File(desc="noise_std_map")
@@ -76,19 +83,17 @@ class PatchDenoise(BaseInterface):
     output_spec = PatchDenoiseOutputSpec
 
     def _run_interface(self, runtime):
+        if (
+            not isdefined(self.inputs.denoise_method)
+            or self.inputs.denoise_method is None
+        ):
+            return runtime
 
         if isdefined(self.inputs.in_file_mag):
             data_mag = nib.load(self.inputs.in_file_mag)
 
             data = data_mag.get_fdata()
-            if (
-                not isdefined(self.inputs.denoise_method)
-                or self.inputs.denoise_method is None
-            ):
-                return runtime
-
-        if isdefined(self.inputs.in_file_imag) and  isdefined(self.intputs.in_file_real):
-
+        if isdefined(self.inputs.in_file_imag) and isdefined(self.intputs.in_file_real):
 
             imag = nib.load(self.inputs.in_file_imag).get_fdata()
             real = nib.load(self.inputs.in_file_real).get_fdata()

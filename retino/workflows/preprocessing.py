@@ -1,4 +1,4 @@
-from .base import BaseWorkflowFactory, node_name, getsubid, subid_varname
+"""Module for the management of Preprocessing Workflow"""
 import os
 from dataclasses import dataclass
 
@@ -6,14 +6,17 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.matlab as mlab
 import nipype.interfaces.spm as spm
-
-from nipype import IdentityInterface, Function, Node, Workflow
-
-
+from nipype import Function, IdentityInterface, Node, Workflow
 from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
+from retino.interfaces.motion import MotionRealImag
 from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
-from retino.interfaces.motion import MotionRealImag
+from retino.workflows.base import (
+    BaseWorkflowFactory,
+    getsubid,
+    node_name,
+    subid_varname,
+)
 
 MATLAB_CMD = "matlab -nosplash -nodesktop"
 N_THREADS = len(os.sched_getaffinity(0))
@@ -95,7 +98,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
         applytopup.inputs.method = "jac"
         applytopup.inputs.output_type = "NIFTI"
 
-        topup_wf = Workflow(name="topup"+extra_name, base_dir=self.working_dir)
+        topup_wf = Workflow(name="topup" + extra_name, base_dir=self.working_dir)
 
         topup_wf.connect(
             [
@@ -133,7 +136,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             matlab_cmd=MATLAB_CMD, resource_monitor=False, single_comp_thread=False
         )
 
-        coreg_wf = Workflow(name="coreg"+extra_name, base_dir=self.working_dir)
+        coreg_wf = Workflow(name="coreg" + extra_name, base_dir=self.working_dir)
 
         coreg_wf.connect(
             [
@@ -316,19 +319,18 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             ]
         else:
             connections = [
-            (
-                input_node,
-                d_node,
-                [
-                    ("data", "in_file_mag"),
-                    ("noise_std_map", "noise_std_map"),
-                    ("mask", "mask"),
-                    ("denoise_method", "denoise_method"),
-                ],
-            ),
-            (d_node, output_node, [("denoised_file", "denoised_file")]),
+                (
+                    input_node,
+                    d_node,
+                    [
+                        ("data", "in_file_mag"),
+                        ("noise_std_map", "noise_std_map"),
+                        ("mask", "mask"),
+                        ("denoise_method", "denoise_method"),
+                    ],
+                ),
+                (d_node, output_node, [("denoised_file", "denoised_file")]),
             ]
-
 
         wf.connect(connections)
         return wf
@@ -351,7 +353,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
 
         brain_mask = Node(Mask(use_mean=False), name="mask")
         brain_mask.n_procs = 10
-        wf = Workflow(name="mask_std", base_dir = self.working_dir)
+        wf = Workflow(name="mask_std", base_dir=self.working_dir)
         wf.connect(
             [
                 (in_node, files, [("sub_id", "sub_id")]),
@@ -434,7 +436,9 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
             IdentityInterface(fields=["mask", "noise_std_map", "denoise_method"]),
             name="proxy_denoise",
         )
-        wf_mask = self._make_predenoise_wf(denoise_p, sequence, extra_name=denoise_p.pretty_par)
+        wf_mask = self._make_predenoise_wf(
+            denoise_p, sequence, extra_name=denoise_p.pretty_par
+        )
 
         if denoise:
             out_folder = f"preprocess.{denoise_p.pretty_par}.@"
@@ -448,7 +452,7 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
                 proxy_node,
                 [("out.mask", "mask"), ("out.noise_std_map", "noise_std_map")],
             ),
-            (proxy_node, sinker, [("mask", out_folder+"anat_mask")])
+            (proxy_node, sinker, [("mask", out_folder + "anat_mask")]),
         ]
 
         for name in ["Clock", "AntiClock"]:
@@ -485,9 +489,10 @@ class PreprocessingWorkflowFactory(BaseWorkflowFactory):
     @staticmethod
     def run_with_denoiser(wf, sub_ids=None, denoise_methods=None):
 
-        from nipype.utils.profiler import log_nodes_cb
         import logging
         from datetime import datetime
+
+        from nipype.utils.profiler import log_nodes_cb
 
         if sub_ids is not None:
             wf.get_node("infosource").iterables = ("sub_id", sub_ids)
