@@ -179,7 +179,7 @@ def coregistration_node(name, working_dir=None, matlab_cmd=None):
 def noise_node(name):
     """Noise Node.
 
-    Input: in_file_mag, in_file_real, in_file_imag, mask, denoise_method
+    Input: in_file_mag, in_file_real, in_file_imag, mask, denoise_str
     Output: denoised_file
     """
     d_node = Node(PatchDenoise(), name=name)
