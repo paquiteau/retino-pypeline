@@ -1,15 +1,18 @@
-"""Basic function to yield nodes."""
+"""Elementary nodes to use in preprocessin workflow.
+
+Some Nodes are implemented as Nipype workflow but don't worry about that.
+"""
 import os
 
 import nipype.interfaces.fsl as fsl
+import nipype.interfaces.io as nio
 import nipype.interfaces.matlab as mlab
 import nipype.interfaces.spm as spm
-import nipype.interfaces.io as nio
+from nipype import Function, IdentityInterface, Node, Workflow
 
-from nipype import IdentityInterface, Node, Workflow, Function
-from retino.interfaces.topup import myTOPUP
-from retino.interfaces.denoise import PatchDenoise, NoiseStdMap
+from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
 from retino.interfaces.tools import Mask
+from retino.interfaces.topup import myTOPUP
 
 
 def get_matlab_cmd(matlab_cmd):
@@ -44,10 +47,10 @@ def selectfile_node(template, basedata_dir, template_args=None):
     return files
 
 
-def realign_node(matlab_cmd=None):
+def realign_node(matlab_cmd=None, name="realign"):
     """Create a realign node."""
     matlab_cmd = get_matlab_cmd(matlab_cmd)
-    realign = Node(spm.Realign(), name="realign")
+    realign = Node(spm.Realign(), name=name)
     realign.inputs.separation = 1.0
     realign.inputs.fwhm = 1.0
     realign.inputs.register_to_mean = False
@@ -58,14 +61,14 @@ def realign_node(matlab_cmd=None):
     return realign
 
 
-def topup_node(extra_name="", working_dir=None):
+def topup_node(name="", working_dir=None):
     """Return a Topup node (with inner workflow).
 
-    Input: "blips" and "blip_opposite"
-    Output: "out"
+    Input: "in.blips" and "in.blip_opposite"
+    Output: "out.out"
     """
-    in_topup = Node(IdentityInterface(fields=["blips", "blip_opposite"]), name="in")
-    out_topup = Node(IdentityInterface(fields=["out"]), name="out")
+    in_topup = Node(IdentityInterface(fields=["blips", "blip_opposite"]), name="input")
+    out_topup = Node(IdentityInterface(fields=["out"]), name="output")
     roi_ap = Node(fsl.ExtractROI(t_min=5, t_size=1), name="roi_ap")
 
     def fsl_merge(in1, in2):
@@ -92,7 +95,7 @@ def topup_node(extra_name="", working_dir=None):
     applytopup.inputs.method = "jac"
     applytopup.inputs.output_type = "NIFTI"
 
-    topup_wf = Workflow(name="topup" + extra_name, base_dir=working_dir)
+    topup_wf = Workflow(name=name, working_dir=working_dir)
 
     topup_wf.connect(
         [
@@ -116,13 +119,30 @@ def topup_node(extra_name="", working_dir=None):
     return topup_wf
 
 
-def coregistration_node(extra_name, working_dir=None, matlab_cmd=None):
+def conditional_topup(name, working_dir=None):
+    """Return a Node with the conditional execution of a topup workflow."""
+
+    def run_topup(sequence, data, data_oppposite_encoding):
+        if "EPI" in sequence:
+            topup_wf = topup_node(name="topup_cond", working_dir=working_dir)
+            topup_wf.inputs.input.blips = data
+            topup_wf.inputs.input.blip_opposite = data_oppposite_encoding
+            topup_wf.run()
+            return topup_wf.outputs.out.out
+        else:
+            return data
+
+    return Node(
+        Function(function=run_topup, input_name=["sequence", "data", "data_opposite"]),
+        name="cond_topup",
+    )
+
+
+def coregistration_node(name, working_dir=None, matlab_cmd=None):
     """Coregistration Node.
-
-    Input: func, anat
-    Output: coreg_func, coreg_anat
+    Input: in.func, in.anat
+    Output: out.coreg_func, out.coreg_anat
     """
-
     matlab_cmd = get_matlab_cmd(matlab_cmd)
     in_node = Node(IdentityInterface(fields=["func", "anat"]), name="in")
     out_node = Node(IdentityInterface(fields=["coreg_func", "coreg_anat"]), name="out")
@@ -136,7 +156,7 @@ def coregistration_node(extra_name, working_dir=None, matlab_cmd=None):
         matlab_cmd=matlab_cmd, resource_monitor=False, single_comp_thread=False
     )
 
-    coreg_wf = Workflow(name="coreg" + extra_name, base_dir=working_dir)
+    coreg_wf = Workflow(name=name, base_dir=working_dir)
 
     coreg_wf.connect(
         [
@@ -156,19 +176,14 @@ def coregistration_node(extra_name, working_dir=None, matlab_cmd=None):
     return coreg_wf
 
 
-def noise_node(denoise_parameters, extra_names=""):
+def noise_node(name):
     """Noise Node.
 
     Input: in_file_mag, in_file_real, in_file_imag, mask, denoise_method
     Output: denoised_file
     """
-    d_node = Node(PatchDenoise(), name="denoise")
-    if denoise_parameters.method:
-        d_node.n_procs = get_num_thread()
-
-    # match input parameters to denoise node interface
-    for attr in ["patch_shape", "patch_overlap", "recombination", "mask_threshold"]:
-        setattr(d_node.inputs, attr, getattr(denoise_parameters, attr))
+    d_node = Node(PatchDenoise(), name=name)
+    d_node.n_procs = get_num_thread()
 
     return d_node
 
@@ -185,7 +200,6 @@ def preproc_noise_node(
 
     file_template is a dict with key "noise" and "data".
     """
-
     in_node = Node(IdentityInterface(fields=template_args), name="in")
     out_node = Node(IdentityInterface(fields=["mask", "noise_std_map"]), name="out")
     files = selectfile_node(file_template)
