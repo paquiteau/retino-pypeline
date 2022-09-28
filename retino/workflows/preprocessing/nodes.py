@@ -15,14 +15,14 @@ from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
 
 
-def get_matlab_cmd(matlab_cmd):
+def _get_matlab_cmd(matlab_cmd):
     if matlab_cmd:
         return matlab_cmd
     else:
         return "matlab -nodesktop -nosplash"
 
 
-def get_num_thread(n=None):
+def _get_num_thread(n=None):
     if n:
         return n
     else:
@@ -30,6 +30,7 @@ def get_num_thread(n=None):
 
 
 def selectfile_node(template, basedata_dir, template_args=None):
+    """Create basic Select file node, requires template."""
     if template_args is None:
         template_args = ["sub_id"]
     files = Node(
@@ -49,7 +50,7 @@ def selectfile_node(template, basedata_dir, template_args=None):
 
 def realign_node(matlab_cmd=None, name="realign"):
     """Create a realign node."""
-    matlab_cmd = get_matlab_cmd(matlab_cmd)
+    matlab_cmd = _get_matlab_cmd(matlab_cmd)
     realign = Node(spm.Realign(), name=name)
     realign.inputs.separation = 1.0
     realign.inputs.fwhm = 1.0
@@ -140,10 +141,11 @@ def conditional_topup(name, working_dir=None):
 
 def coregistration_node(name, working_dir=None, matlab_cmd=None):
     """Coregistration Node.
+
     Input: in.func, in.anat
     Output: out.coreg_func, out.coreg_anat
     """
-    matlab_cmd = get_matlab_cmd(matlab_cmd)
+    matlab_cmd = _get_matlab_cmd(matlab_cmd)
     in_node = Node(IdentityInterface(fields=["func", "anat"]), name="in")
     out_node = Node(IdentityInterface(fields=["coreg_func", "coreg_anat"]), name="out")
 
@@ -183,7 +185,7 @@ def noise_node(name):
     Output: denoised_file
     """
     d_node = Node(PatchDenoise(), name=name)
-    d_node.n_procs = get_num_thread()
+    d_node.n_procs = _get_num_thread()
 
     return d_node
 

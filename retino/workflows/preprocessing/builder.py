@@ -1,89 +1,94 @@
 """Builder function, they extend a workflow to add nodes."""
-from warnings import warn
-
+import nipype.interfaces.io as nio
+from nipype import Function, IdentityInterface, Node
 from retino.workflows.preprocessing.nodes import (
-    realign_node,
-    coregistration_node,
-    topup_node,
     conditional_topup,
+    coregistration_node,
     noise_node,
-    selectfile_node,
-    preproc_noise_node,
+    realign_node,
 )
 
-from nipype import IdentityInterface, Node, Function
+
+def _getsubid(i):
+    return f"sub_{i:02d}"
 
 
+def _subid_varname(i):
+    return f"_sub_id_{i}"
 
-def add_base(workflow, base_data_dir, cached_realignment):
-    """add the minimum base node for the workflow
-    to select files and output to sink files in."""
 
+def _get_key(d, k):
+    return d[k]
+
+
+def add_base(wf, base_data_dir, cached_realignment):
+    """Add the  basic nodes for the workflow.
+
+    "input" node with [sub_id, sequence, denoise_config, task]
+    "selectfiles" node with templates for magnitude images
+    "sinker" node for the output. The sub_id is use a parent folder (container).
+    to select files and output to sink files in.
+    """
     in_fields = ["sub_id", "sequence", "denoise_config", "task"]
     templates_args = ["sub_id", "sequence", "task"]
 
     input_node = Node(IdentityInterface(fields=in_fields), "input")
 
     def template_node(sequence, cached_realignment):
-        """test"""
+        """Template node as a Function to handle cached realignment.
+
+        TODO add support for complex according to the denoising config string.
+        """
         template = {
             "anat": "sub_%02i/anat/*_T1.nii",
-            "data": f"sub_%02i/func/*%s_%sTask.nii",
+            "data": "sub_%02i/func/*%s_%sTask.nii",
+        }
+        file_template_args = {
+            "anat": [["sub_id"]],
+            "data": [["sub_id", "sequence", "task"]],
         }
 
         if cached_realignment == "cached":
-            template["data"] = f"sub_%02i/realign/*%s_%sTask.nii"
-            template["motion"] = f"sub_%02i/realign/*%s_%sTask.txt"
-
+            template["data"] = "sub_%02i/realign/*%s_%sTask.nii"
+            template["motion"] = "sub_%02i/realign/*%s_%sTask.txt"
+            file_template_args["motion"] = [["sub_id", "sequence", "task"]]
         if "EPI" in sequence:
-            template["data_pa"] = f"sub_%02i/func/*%s_Clockwise_1rep_PA.nii"
-
-        return template
+            template["data_pa"] = "sub_%02i/func/*%s_Clockwise_1rep_PA.nii"
+            file_template_args["data_pa"] = [["sub_id", "sequence"]]
+        return template, file_template_args
 
     tplt_node = Node(
         Function(
             function=template_node,
-            input_name=["sequence", "realignment"],
-            output_name=["template"],
+            input_names=["sequence", "cached_realignment"],
+            output_names=["template", "template_args"],
         ),
         name="template_node",
     )
     tplt_node.inputs.cached_realignment = cached_realignment
     files = Node(
         nio.DataGrabber(
-            in_fields=templates_args,
+            infields=templates_args,
+            outfields=["data", "anat", "motion", "data_pa"],
             base_directory=base_data_dir,
             template="*",
             sort_filelist=True,
         ),
         name="selectfiles",
     )
-
     sinker = Node(nio.DataSink(), name="sinker")
     sinker.inputs.base_directory = base_data_dir
     sinker.parameterization = False
-    sinker.inputs.substitutions = [
-        ("rp_sub", "sub"),
-        ("rrsub", "sub"),
-        ("rsub", "sub"),
-        ("_denoise_method_", "denoise_method-"),
-    ]
-
-    sinker.inputs.regexp_substitutions = [(r"denoise_method-(.*?)/(.*)", r"\2")]
 
     wf.connect(
         [
-            (
-                input_node,
-                tplt_node,
-                [("sequence", "sequence"), ("realignment", "realignment")],
-            ),
+            (input_node, tplt_node, [("sequence", "sequence")]),
             (
                 tplt_node,
                 files,
                 [
                     ("template", "field_template"),
-                    ("templates_args", "templates_args"),
+                    ("template_args", "template_args"),
                 ],
             ),
             (
@@ -91,34 +96,38 @@ def add_base(workflow, base_data_dir, cached_realignment):
                 files,
                 [("sub_id", "sub_id"), ("sequence", "sequence"), ("task", "task")],
             ),
-            (input_node, sinker, [(("sub_id", getsubid), "container")]),
+            (input_node, sinker, [(("sub_id", _getsubid), "container")]),
         ]
     )
 
     return wf
 
 
-def add_realign(wf, name="realign", after_node, edge):
-    """Add a Realignment node after_node,  withedge """
+def _add_to_wf(wf, after_node, edge_out, node, edge_in):
     if isinstance(after_node, str):
         after_node = wf.get_node(after_node)
-
-    realign = realign_node(name=name)
-    wf.connect(after_node, edge, realign, "in_files")
+    wf.connect(after_node, edge_out, node, edge_in)
     return wf
 
 
+def add_realign(wf, name, after_node, edge):
+    """Add a Realignment node."""
+    realign = realign_node(name=name)
+    return _add_to_wf(wf, after_node, edge, realign, "in_files")
 
-def add_denoise(wf, after_node, edge):
 
-
-
-
-def add_topup(wf, after_node, edge):
-    """Add conditional topup correction """
+def add_denoise_mag(wf, name, after_node, edge):
+    """Add denoising step for magnitude input."""
+    denoise = noise_node(name)
     input_node = wf.get_node("input")
-    condtopup = conditional_topup("conditional_topup")
+    wf.connect(input_node, "denoise_config", denoise, "denoise_str")
+    return _add_to_wf(wf, after_node, edge, denoise, "in_file_mag")
 
+
+def add_topup(wf, name, after_node, edge):
+    """Add conditional topup correction."""
+    input_node = wf.get_node("input")
+    condtopup = conditional_topup(name)
 
     if isinstance(after_node, str):
         after_node = wf.get_node(after_node)
@@ -128,34 +137,40 @@ def add_topup(wf, after_node, edge):
     wf.connect(
         [
             (
-                input_node
+                input_node,
                 condtopup,
                 [
                     ("sequence", "sequence"),
                     ("data_opposite", "input.data_opposite"),
                 ],
             ),
-        ])
+        ]
+    )
     return wf
 
 
-
-def add_coreg(wf, after_node, edge):
-
+def add_coreg(wf, name, after_node, edge):
+    """Add coregistration step."""
     if isinstance(after_node, str):
         after_node = wf.get_node(after_node)
 
-    coreg = coregistration_node("coregistration")
+    coreg = coregistration_node(name)
 
     wf.connect(after_node, edge, coreg, "in.func")
-    #also add mandatory connections:
+    # also add mandatory connections:
     wf.connect(wf.get_node("selectfiles"), "anat", coreg, "in.anat")
     return wf
 
 
 def add_sinker(wf, connections):
-    """connections for sinker to add to workflow.
+    """Add connections to sinker.
 
     connections hould be a list of (node_name, edge, output_name)
 
     """
+    sinker = wf.get_node("sinker")
+
+    for con in connections:
+        wf.connect(wf.get_node(con[0]), con[1], sinker, con[2])
+
+    return wf
