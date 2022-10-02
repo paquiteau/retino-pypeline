@@ -1,8 +1,7 @@
-"""Elementary nodes to use in preprocessin workflow.
+"""Collections of function to create ready to connect nodes to use in preprocessin workflow.
 
 Some Nodes are implemented as Nipype workflow but don't worry about that.
 """
-import os
 
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -10,23 +9,15 @@ import nipype.interfaces.matlab as mlab
 import nipype.interfaces.spm as spm
 from nipype import Function, IdentityInterface, Node, Workflow
 
+from retino.workflows.tools import _get_matlab_cmd, _get_num_thread
+
 from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
 from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
 
 
-def _get_matlab_cmd(matlab_cmd):
-    if matlab_cmd:
-        return matlab_cmd
-    else:
-        return "matlab -nodesktop -nosplash"
 
 
-def _get_num_thread(n=None):
-    if n:
-        return n
-    else:
-        return len(os.sched_getaffinity(0))
 
 
 def selectfile_node(template, basedata_dir, template_args=None):
