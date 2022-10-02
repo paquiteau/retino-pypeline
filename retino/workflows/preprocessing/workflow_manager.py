@@ -21,6 +21,10 @@ class PreprocessingManager:
     def __init__(self, base_data_dir, working_dir):
         self.base_data_dir = base_data_dir
         self.working_dir = working_dir
+        self._workflow_name = ""
+
+    def set_workflow_name(self, name):
+        self._workflow_name = name
 
     def show_graph(self, wf):
         """Check the workflow. Also draws a representation."""
