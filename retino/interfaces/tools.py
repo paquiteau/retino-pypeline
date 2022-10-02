@@ -13,6 +13,7 @@ from nipype.interfaces.base import (
 )
 
 from skimage.morphology import convex_hull_image
+from skimage.filters import threshold_otsu
 from nipy.labs.mask import compute_mask
 
 
@@ -20,9 +21,22 @@ class MaskInputSpec(BaseInterfaceInputSpec):
     """InputSpec for Mask Interface."""
 
     in_file = File(exists=True, mandatory=True, desc="A fMRI input file.")
-    use_mean = traits.Bool(True, mandatory=False, desc = "Compute the brain mask using the mean image (over the last dimension)")
+    use_mean = traits.Bool(
+        True,
+        mandatory=False,
+        desc="Compute the brain mask using the mean image (over the last dimension)",
+    )
+    method = traits.Enum(
+        "otsu",
+        "nichols",
+        desc="thresholding method for the brain segmentation. otsu recommended",
+    )
+    convex_mask = traits.Bool(False, desc="Should the mask be convex, default False")
+
 
 class MaskOutputSpec(TraitedSpec):
+    """OutputSpec for Mask Interface."""
+
     mask = File(desc="the mask of a ROI")
 
 
@@ -40,15 +54,18 @@ class Mask(SimpleInterface):
         else:
             avg = data.get_fdata()
 
-        mask = np.uint8(compute_mask(avg))
-        # for i in range(mask.shape[-1]):
-        #     mask[..., i] = convex_hull_image(mask[..., i])
+        if self.inputs.method == "otsu":
+            mask = np.zeros(avg.shape, dtype=bool)
+            for i in range(avg.shape[-1]):
+                mask[..., i] = avg[..., i] > threshold_otsu(avg[..., i])
+        elif self.inputs.method == "nipy":
+            mask = np.uint8(compute_mask(avg))
 
-        mask_nii = nib.Nifti1Image(mask, affine=data.affine)
+        if self.inputs.convex_mask:
+            for i in range(mask.shape[-1]):
+                mask[..., i] = convex_hull_image(mask[..., i])
 
-        self._output_name = os.path.basename(self.inputs.in_file).split(".")[0] + "_mask.nii"
-
-        mask_nii.to_filename(self._output_name)
+        mask_nii = nib.Nifti1Image(np.uint8(mask), affine=data.affine)
 
         filename = os.path.basename(self.inputs.in_file).split(".")[0] + "_mask.nii"
         mask_nii.to_filename(filename)
