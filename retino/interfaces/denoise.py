@@ -273,7 +273,7 @@ class NoiseStdMap(SimpleInterface):
         noise_std_map_img = nib.Nifti1Image(noise_std_map, affine=noise_map.affine)
 
         filename = os.path.abspath(
-            os.path.basename(self.inputs.noise_map_file) + "_std.nii"
+            os.path.basename(self.inputs.noise_map_file).split(".")[0] + "_std.nii"
         )
         noise_std_map_img.to_filename(filename)
         self._results["noise_std_map"] = filename
