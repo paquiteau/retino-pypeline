@@ -26,13 +26,21 @@ class PreprocessingManager:
     def set_workflow_name(self, name):
         self._workflow_name = name
 
-    def show_graph(self, wf):
+    def show_graph(self, wf, graph2use="colored"):
         """Check the workflow. Also draws a representation."""
         # TODO ascii plot: https://github.com/ggerganov/dot-to-ascii
 
-        fname = wf.write_graph(dotfilename="graph.dot", graph2use="colored")
+        fname = wf.write_graph(dotfilename="graph.dot", graph2use=graph2use)
         return fname
 
+    def show_graph_nb(self, wf, graph2use="colored", detailed=False):
+        from IPython.display import Image
+
+        if detailed:
+            return Image(
+                self.show_graph(wf, graph2use=graph2use).split(".")[0] + "_detailed.png"
+            )
+        return Image(self.show_graph(wf))
     def run(self, wf, multi_proc=False, **kwargs):
         """Run the workflow with iterables parametrization defined in kwargs."""
         inputnode = wf.get_node("input")
