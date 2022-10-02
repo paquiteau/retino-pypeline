@@ -14,6 +14,29 @@ from retino.workflows.preprocessing.builder import (
     add_topup,
 )
 
+def template_node(sequence, cached_realignment):
+    """Template node as a Function to handle cached realignment.
+
+    TODO add support for complex according to the denoising config string.
+    """
+    template = {
+        "anat": "sub_%02i/anat/*_T1.nii",
+        "data": "sub_%02i/func/*%s_%sTask.nii",
+    }
+    file_template_args = {
+        "anat": [["sub_id"]],
+        "data": [["sub_id", "sequence", "task"]],
+    }
+
+    if cached_realignment == "cached":
+        template["data"] = "sub_%02i/realign/*%s_%sTask.nii"
+        template["motion"] = "sub_%02i/realign/*%s_%sTask.txt"
+        file_template_args["motion"] = [["sub_id", "sequence", "task"]]
+    if "EPI" in sequence:
+        template["data_opposite"] = "sub_%02i/func/*%s_Clockwise_1rep_PA.nii"
+        file_template_args["data_opposite"] = [["sub_id", "sequence"]]
+    return template, file_template_args
+
 
 class PreprocessingManager:
     """Manager for preprocessing workflow."""
@@ -41,6 +64,61 @@ class PreprocessingManager:
                 self.show_graph(wf, graph2use=graph2use).split(".")[0] + "_detailed.png"
             )
         return Image(self.show_graph(wf))
+    def _base_build(self):
+        """
+        Build the base of preprocessing workflow.
+
+        4 nodes are created and added:
+        - Input -> template_node -> selectfiles
+           |-> files
+           |-> sinker
+        """
+        wf = Workflow(self._workflow_name, base_dir=self.working_dir)
+
+        in_fields = ["sub_id", "sequence", "denoise_config", "task"]
+        templates_args = ["sub_id", "sequence", "task"]
+
+        input_node = input_task(in_fields)
+        tplt_node = func2node(template_node, output_names=["template", "template_args"])
+        tplt_node.inputs.cached_realignment = False
+        files = file_task(
+            infields=templates_args,
+            outfields=["data", "anat", "motion", "data_opposite"],
+            base_data_dir=self.base_data_dir,
+        )
+        sinker = sinker_task(self.base_data_dir)
+
+        wf.connect(
+            [
+                (input_node, tplt_node, [("sequence", "sequence")]),
+                (
+                    tplt_node,
+                    files,
+                    [
+                        ("template", "field_template"),
+                        ("template_args", "template_args"),
+                    ],
+                ),
+                (
+                    input_node,
+                    files,
+                    [("sub_id", "sub_id"), ("sequence", "sequence"), ("task", "task")],
+                ),
+                (input_node, sinker, [(("sub_id", _getsubid), "container")]),
+            ]
+        )
+
+        return wf
+
+    def _build():
+        raise NotImplementedError()
+
+    def get_workflow(self, *args, **kwargs):
+        """Get a preprocessing workflow."""
+        wf = self._base_build()
+        wf = self._build(wf, *args, **kwargs)
+        return wf
+
     def run(self, wf, multi_proc=False, **kwargs):
         """Run the workflow with iterables parametrization defined in kwargs."""
         inputnode = wf.get_node("input")
