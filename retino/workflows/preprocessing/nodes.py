@@ -16,30 +16,51 @@ from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
 
 
+def input_task(in_fields):
+    """Return input node."""
+    return Node(IdentityInterface(fields=in_fields), "input")
 
 
+def sinker_task(base_data_dir):
+    """Return Sinker node."""
+    sinker = Node(nio.DataSink(), name="sinker")
+    sinker.inputs.base_directory = base_data_dir
+    sinker.parameterization = False
+    return sinker
 
 
-def selectfile_node(template, basedata_dir, template_args=None):
+def file_task(infields, outfields, base_data_dir):
+    """Return a file selector node."""
+    return Node(
+        nio.DataGrabber(
+            infields=infields,
+            outfields=outfields,
+            base_directory=base_data_dir,
+            template="*",
+            sort_filelist=True,
+        ),
+        name="selectfiles",
+    )
+
+
+def selectfile_task(template, base_data_dir, template_args=None, infields=None):
     """Create basic Select file node, requires template."""
-    if template_args is None:
-        template_args = ["sub_id"]
     files = Node(
         nio.DataGrabber(
-            infields=template_args,
+            infields=infields,
             outfields=list(template.keys()),
-            base_directory=basedata_dir,
+            base_directory=base_data_dir,
             template="*",
             sort_filelist=True,
         ),
         name="selectfiles",
     )
     files.inputs.field_template = template
-    files.inputs.templates_args = {k: [template_args] for k in template.keys()}
+    files.inputs.templates_args = template_args
     return files
 
 
-def realign_node(matlab_cmd=None, name="realign"):
+def realign_task(matlab_cmd=None, name="realign"):
     """Create a realign node."""
     matlab_cmd = _get_matlab_cmd(matlab_cmd)
     realign = Node(spm.Realign(), name=name)
@@ -53,7 +74,7 @@ def realign_node(matlab_cmd=None, name="realign"):
     return realign
 
 
-def topup_node(name="", working_dir=None):
+def topup_task(name=""):
     """Return a Topup node (with inner workflow).
 
     Input: "in.blips" and "in.blip_opposite"
@@ -87,7 +108,7 @@ def topup_node(name="", working_dir=None):
     applytopup.inputs.method = "jac"
     applytopup.inputs.output_type = "NIFTI"
 
-    topup_wf = Workflow(name=name, working_dir=working_dir)
+    topup_wf = Workflow(name=name, base_dir=None)
 
     topup_wf.connect(
         [
@@ -111,16 +132,18 @@ def topup_node(name="", working_dir=None):
     return topup_wf
 
 
-def conditional_topup(name, working_dir=None):
+def conditional_topup_task(name):
     """Return a Node with the conditional execution of a topup workflow."""
 
-    def run_topup(sequence, data, data_oppposite_encoding):
+    def run_topup(sequence, data, data_opposite):
+        from retino.workflows.preprocessing.nodes import topup_task
+
         if "EPI" in sequence:
-            topup_wf = topup_node(name="topup_cond", working_dir=working_dir)
+            topup_wf = topup_task(name="topup_cond")
             topup_wf.inputs.input.blips = data
-            topup_wf.inputs.input.blip_opposite = data_oppposite_encoding
+            topup_wf.inputs.input.blip_opposite = data_opposite
             topup_wf.run()
-            return topup_wf.outputs.out.out
+            return topup_wf.outputs.output.out
         else:
             return data
 
@@ -130,7 +153,7 @@ def conditional_topup(name, working_dir=None):
     )
 
 
-def coregistration_node(name, working_dir=None, matlab_cmd=None):
+def coregistration_task(name, working_dir=None, matlab_cmd=None):
     """Coregistration Node.
 
     Input: in.func, in.anat
@@ -169,7 +192,7 @@ def coregistration_node(name, working_dir=None, matlab_cmd=None):
     return coreg_wf
 
 
-def noise_node(name):
+def denoise_node(name):
     """Noise Node.
 
     Input: in_file_mag, in_file_real, in_file_imag, mask, denoise_str
@@ -181,37 +204,18 @@ def noise_node(name):
     return d_node
 
 
-def preproc_noise_node(
-    patch_shape,
-    file_template,
-    basedata_dir,
-    template_args=["sub_id"],
-    working_dir="",
-    extra_name="",
-):
-    """Preprocessing noise workflow.
-
-    file_template is a dict with key "noise" and "data".
-    """
-    in_node = Node(IdentityInterface(fields=template_args), name="in")
-    out_node = Node(IdentityInterface(fields=["mask", "noise_std_map"]), name="out")
-    files = selectfile_node(file_template)
-
-    noise_map = Node(NoiseStdMap(), name="noise_map")
-    noise_map.inputs.block_size = patch_shape
-    noise_map.inputs.fft_scale = 100  # Magic Number, needs to be configured elsewhere
-
-    brain_mask = Node(Mask(use_mean=False), name="mask")
-    brain_mask.n_procs = 10
-    wf = Workflow(name="mask_std", base_dir=working_dir)
-    wf.connect(
-        [
-            (in_node, files, [("sub_id", "sub_id")]),
-            (files, brain_mask, [("data", "in_file")]),
-            (files, noise_map, [("noise", "noise_map_file")]),
-            (brain_mask, out_node, [("mask", "mask")]),
-            (noise_map, out_node, [("noise_std_map", "noise_std_map")]),
-        ]
+def mask_node(name):
+    """Mask Node."""
+    return Node(
+        Mask(
+            convex_mask=False,
+            use_mean=True,
+            method="otsu",
+        ),
+        name=name,
     )
 
-    return wf
+
+def noise_std_node(name):
+    """Estimator for noise std."""
+    return Node(NoiseStdMap(fft_scale=100, block_size=5), name=name)
