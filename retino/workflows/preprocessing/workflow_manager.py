@@ -24,6 +24,18 @@ from retino.workflows.preprocessing.nodes import (
     noise_std_node,
     input_task,
 )
+
+_REGEX_SINKER = [
+    (r"rp_sub", "sub"),
+    (r"rrsub", "sub"),
+    (r"rsub", "sub"),
+    (r"_sequence_(.*?)[_/]", "_"),
+    (r"_sub_id_(.*?)[_/]", "_"),
+    (r"_task_(.*?)[_/]", "_"),
+    (r"_sub_(\d\d)", r"sub_\1"),
+]
+
+
 def template_node(sequence, cached_realignment):
     """Template node as a Function to handle cached realignment.
 
