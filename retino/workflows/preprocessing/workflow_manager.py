@@ -1,9 +1,14 @@
-"""Preprocessing Workflow Manager."""
+"""Preprocessing Workflow Manager.
+
+The management of workflow happens at two levels:
+First on the built time,  where the overall design of the workflow is selected.
+Then at the run time,  where the parameters for selecting the data and the denoising methods are provided.
+
+"""
 from nipype import Workflow
 from retino.workflows.preprocessing.builder import (
-    add_base,
     add_coreg,
-    add_denoise,
+    add_denoise_mag,
     add_realign,
     add_sinker,
     add_topup,
