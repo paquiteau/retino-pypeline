@@ -86,6 +86,7 @@ class PreprocessingManager:
                 self.show_graph(wf, graph2use=graph2use).split(".")[0] + "_detailed.png"
             )
         return Image(self.show_graph(wf))
+
     def _base_build(self):
         """
         Build the base of preprocessing workflow.
@@ -222,13 +223,17 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
         sinker.inputs.regexp_substitutions = _REGEX_SINKER
         return wf
 
-            wf,
-        )
-        return wf
+    def run(self, wf, task=None, denoise_config=None, sub_id=None, sequence=None):
+        if task is None:
+            task = ["AntiClockwise", "Clockwise"]
 
-    def run(self, wf, task=["Clockwise", "AntiClockwise"], **kwargs):
-        """Rune the workflow, with iterables kwargs."""
-        return super().run(wf, task=task, **kwargs)
+        return super().run(
+            wf,
+            task=task,
+            denoise_config=denoise_config,
+            sub_id=sub_id,
+            sequence=sequence,
+        )
 
 
 class RealignmentPreprocessingManager(PreprocessingManager):
