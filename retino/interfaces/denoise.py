@@ -100,6 +100,8 @@ class DenoiseParameters:
 
 
 class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
+    """InputSpec for Patch denoising Interface."""
+
     in_mag = File(
         exists=True,
         xor=["in_real", "in_imag"],
@@ -144,12 +146,16 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
 
 
 class PatchDenoiseOutputSpec(TraitedSpec):
+    """OutputSpec for Denoising Interface."""
+
     denoised_file = File(desc="denoised file")
     noise_std_map = File(desc="a map of the noise variance.")
     pass
 
 
 class PatchDenoise(SimpleInterface):
+    """Patch based denoising interface."""
+
     input_spec = PatchDenoiseInputSpec
     output_spec = PatchDenoiseOutputSpec
 
@@ -235,16 +241,26 @@ class PatchDenoise(SimpleInterface):
 
 
 class NoiseStdMapInputSpec(BaseInterfaceInputSpec):
-    noise_map_file = File(exists=True, desc="A 0-Volt volume acquisition")
-    fft_scale = traits.Int(100)
-    block_size = traits.Int(3)
+    """InputSpec for Noise Map Estimation."""
+
+    noise_map_file = File(
+        exists=True,
+        mandatory=True,
+        desc="A 0-Volt volume acquisition",
+    )
+    fft_scale = traits.Int(default=100, desc="scaling parameter of the reconstruction.")
+    block_size = traits.Int(default=3, desc="size of spatial block to compute the std.")
 
 
 class NoiseStdMapOutputSpec(TraitedSpec):
+    """OutputSpec for Noise Map Estimation."""
+
     noise_std_map = File(desc="Spatial variation of noise variance")
 
 
 class NoiseStdMap(SimpleInterface):
+    """Noise std estimation."""
+
     input_spec = NoiseStdMapInputSpec
     output_spec = NoiseStdMapOutputSpec
 

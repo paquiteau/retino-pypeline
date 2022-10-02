@@ -162,5 +162,9 @@ class RealignmentPreprocessingManager(PreprocessingManager):
 
 class NoisePreprocessingManager(PreprocessingManager):
     """Workflow Manager for Noise Preprocessing steps (noise map estimation, G-Map)."""
+    """Workflow Manager for Noise Preprocessing steps (noise map, mask, G-Map)."""
+
+    def build(self, name="noise_preprocessing"):
+        wf = Workflow(name=name, base_dir=self.working_dir)
 
     ...
