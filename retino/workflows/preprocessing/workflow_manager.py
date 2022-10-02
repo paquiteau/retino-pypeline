@@ -234,13 +234,7 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
 class RealignmentPreprocessingManager(PreprocessingManager):
     """Manager for a simple Realignment Only Workflow."""
 
-    def build(self, name="realign"):
-        wf = Workflow(name=name, base_dir=self.working_dir)
-        wf = add_base(
-            wf,
-            base_data_dir=self.base_data_dir,
-            cached_realignment=False,
-        )
+    def _build(self, wf, name="cached_realign"):
         wf = add_realign(wf, name="realign", after_node="selectfiles", edge="data")
         wf = add_sinker(
             wf,
@@ -252,11 +246,8 @@ class RealignmentPreprocessingManager(PreprocessingManager):
 
         # configure sinker
         sinker = wf.get_node("sinker")
-        sinker.inputs.regexp_substitutions = [
-            (r"_sequence_(.*?)[_/]", "_"),
-            (r"_sub_id_(.*?)[_/]", "_"),
-            (r"_task_(.*?)[_/]", "_"),
-            (r"realign/_", "realign/"),
+        sinker.inputs.regexp_substitutions = _REGEX_SINKER + [
+            (r"realign/_", "realign/")
         ]
         return wf
 
