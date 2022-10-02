@@ -135,15 +135,10 @@ def add_topup(wf, name, after_node, edge):
 
 def add_coreg(wf, name, after_node, edge):
     """Add coregistration step."""
-    if isinstance(after_node, str):
-        after_node = wf.get_node(after_node)
-
-    coreg = coregistration_node(name)
-
-    wf.connect(after_node, edge, coreg, "in.func")
+    coreg = coregistration_task(name)
     # also add mandatory connections:
     wf.connect(wf.get_node("selectfiles"), "anat", coreg, "in.anat")
-    return wf
+    return _add_to_wf(wf, after_node, edge, coreg, "in.func")
 
 
 def add_sinker(wf, connections, folder=None):
