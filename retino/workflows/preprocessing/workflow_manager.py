@@ -261,11 +261,58 @@ class RealignmentPreprocessingManager(PreprocessingManager):
         return wf
 
 
-class NoisePreprocessingManager(PreprocessingManager):
-    """Workflow Manager for Noise Preprocessing steps (noise map estimation, G-Map)."""
+class NoisePreprocManager(PreprocessingManager):
     """Workflow Manager for Noise Preprocessing steps (noise map, mask, G-Map)."""
 
-    def build(self, name="noise_preprocessing"):
-        wf = Workflow(name=name, base_dir=self.working_dir)
+    def get_workflow(self):
+        self.set_workflow_name("noise_preprocessing")
+        return super().get_workflow(self)
 
-    ...
+    def _base_build(self):
+        """Return a Workflow with minimal nodes."""
+        wf = Workflow(name=self._workflow_name, base_dir=self.working_dir)
+
+        infields = ["sub_id", "sequence"]
+        template_args = {
+            "noise": [["sub_id", "sequence"]],
+            # "smaps": [["sub_id"]],
+            "data": [["sub_id", "sequence"]],
+        }
+
+        template = {
+            "noise": "sub_%02i/extra/*%s-0v.nii",
+            # "smaps": "sub_%02i/extra/*",
+            "data": "sub_%02i/func/*%s_ClockwiseTask.nii",
+        }
+        input_node = input_task(infields)
+        files = selectfile_task(
+            infields=infields,
+            template=template,
+            template_args=template_args,
+            base_data_dir=self.base_data_dir,
+        )
+        sinker = sinker_task(self.base_data_dir)
+
+        wf.connect(
+            [
+                (input_node, files, [("sub_id", "sub_id"), ("sequence", "sequence")]),
+                (input_node, sinker, [(("sub_id", _getsubid), "container")]),
+            ]
+        )
+        return wf
+
+    def _build(self, wf, *args, **kwargs):
+
+        mask = mask_node(name="mask")
+        noise_std = noise_std_node(name="noise_std")
+
+        files = wf.get_node("selectfiles")
+        sinker = wf.get_node("sinker")
+
+        sinker.inputs.regexp_substitutions = _REGEX_SINKER
+
+        wf.connect(files, "data", mask, "in_file")
+        wf.connect(files, "noise", noise_std, "noise_map_file")
+        wf.connect(mask, "mask", sinker, "preproc_extra.@mask")
+        wf.connect(noise_std, "noise_std_map", sinker, "preproc_extra.@noise_std")
+        return wf
