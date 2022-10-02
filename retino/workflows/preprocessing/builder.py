@@ -125,26 +125,12 @@ def add_denoise_mag(wf, name, after_node, edge):
 def add_topup(wf, name, after_node, edge):
     """Add conditional topup correction."""
     input_node = wf.get_node("input")
-    condtopup = conditional_topup(name)
-
-    if isinstance(after_node, str):
-        after_node = wf.get_node(after_node)
-
-    wf.connect(after_node, edge, condtopup, "data")
+    selectfiles = wf.get_node("selectfiles")
+    condtopup = conditional_topup_task(name)
     # also adds mandatory connections
-    wf.connect(
-        [
-            (
-                input_node,
-                condtopup,
-                [
-                    ("sequence", "sequence"),
-                    ("data_opposite", "input.data_opposite"),
-                ],
-            ),
-        ]
-    )
-    return wf
+    wf.connect(input_node, "sequence", condtopup, "sequence")
+    wf.connect(selectfiles, "data_opposite", condtopup, "data_opposite")
+    return _add_to_wf(wf, after_node, edge, condtopup, "data")
 
 
 def add_coreg(wf, name, after_node, edge):
