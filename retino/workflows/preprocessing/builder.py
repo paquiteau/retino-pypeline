@@ -1,11 +1,9 @@
 """Builder function, they extend a workflow to add nodes."""
-import nipype.interfaces.io as nio
-from nipype import Function, IdentityInterface, Node
 from retino.workflows.preprocessing.nodes import (
-    conditional_topup,
-    coregistration_node,
-    noise_node,
-    realign_node,
+    conditional_topup_task,
+    coregistration_task,
+    denoise_node,
+    realign_task,
 )
 
 
@@ -112,13 +110,13 @@ def _add_to_wf(wf, after_node, edge_out, node, edge_in):
 
 def add_realign(wf, name, after_node, edge):
     """Add a Realignment node."""
-    realign = realign_node(name=name)
+    realign = realign_task(name=name)
     return _add_to_wf(wf, after_node, edge, realign, "in_files")
 
 
 def add_denoise_mag(wf, name, after_node, edge):
     """Add denoising step for magnitude input."""
-    denoise = noise_node(name)
+    denoise = denoise_node(name)
     input_node = wf.get_node("input")
     wf.connect(input_node, "denoise_config", denoise, "denoise_str")
     return _add_to_wf(wf, after_node, edge, denoise, "in_file_mag")
