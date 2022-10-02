@@ -157,7 +157,13 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
     There is two task: Clockwise and Anticlockwise.
     """
 
-    def build(self, build_code=""):
+    def get_workflow(self, name="preprocessing", build_code=""):
+        """Get a Retinotopy workflow."""
+        wf_name = name + ("_{build_code}" if build_code else "")
+        self.set_workflow_name(wf_name)
+        return super().get_workflow(build_code)
+
+    def _build(self, wf, build_code=""):
         """Create a Retinotopy Workflow with option for the order of steps.
 
         Parameters
@@ -168,13 +174,6 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
         -------
         wf : a nipype workflow ready to be run.
         """
-        wf = Workflow(name="preprocess_" + build_code, base_dir=self.working_dir)
-        wf = add_base(
-            wf,
-            base_data_dir=self.base_data_dir,
-            cached_realignment="R" in build_code,
-        )
-
         if build_code in ["", "R"]:
             # cached realignment or nothing
             nxt = ("selectfiles", "data")
@@ -185,29 +184,30 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
         elif build_code == "rd":
             # realignment, denoising
             wf = add_realign(wf, "realign", "selectfiles", "data")
-            wf = add_denoise(wf, "denoise", "realign", "realigned_files")
+            wf = add_denoise_mag(wf, "denoise", "realign", "realigned_files")
             nxt = ("denoise", "denoised_file")
         elif build_code == "Rd":
             # cached realignement, denoising
-            wf = add_denoise(wf, "denoise", "selectfiles", "data")
+            wf.template_node.cached_realignmnent = True
+            wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
             nxt = ("denoise", "denoised_file")
         elif build_code == "dr":
             # denoising, realigment
-            wf = add_denoise(wf, "denoise", "selectfiles", "data")
+            wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
             wf = add_realign(wf, "realign", "denoise", "denoised_files")
             nxt = ("realign", "realigned_files")
         elif build_code == "d":
             # denoising only
-            wf = add_denoise(wf, "denoise", "selectfiles", "data")
+            wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
         else:
             raise ValueError("Unsupported build code.")
 
         wf = add_topup(wf, "topup", nxt[0], nxt[1])
-        wf = add_coreg(wf, "coreg", "topup", "out")
+        wf = add_coreg(wf, "coreg", "cond_topup", "out")
 
         to_sink = [
-            ("coreg", "out.func", "coreg_func"),
-            ("coreg", "out.anat", "coreg_anat"),
+            ("coreg", "out.coreg_func", "coreg_func"),
+            ("coreg", "out.coreg_anat", "coreg_anat"),
         ]
 
         if "r" in build_code.lower():
@@ -215,30 +215,14 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
         if "d" in build_code:
             to_sink.append(("denoise", "noise_std_map", "noise_map"))
 
-        wf = add_sinker(wf, to_sink)
+        wf = add_sinker(wf, to_sink, folder=f"preproc.{build_code}")
         # extra configuration for  sinker
         sinker = wf.get_node("sinker")
 
-        sinker.inputs.regexp_substitutions = [
-            (r"rp_sub", "sub"),
-            (r"rrsub", "sub"),
-            (r"rsub", "sub"),
-            (r"_sequence_(.*?)[_/]", "_"),
-            (r"_sub_id_(.*?)[_/]", "_"),
-            (r"_task_(.*?)[_/]", "_"),
-        ]
+        sinker.inputs.regexp_substitutions = _REGEX_SINKER
         return wf
 
-    def _build_minimal(self, wf, after_node, edge):
-        """Minimal setup with conditional topup and coregistration."""
-        wf = add_topup(wf, "topup", after_node, edge)
-        wf = add_coreg(wf, "coreg", after_node="topup", edge="out")
-        wf = add_sinker(
             wf,
-            [
-                ("coreg", "out.func", "preprocess.@coreg_func"),
-                ("coreg", "out.anat", "preprocess.@coreg_anat"),
-            ],
         )
         return wf
 
