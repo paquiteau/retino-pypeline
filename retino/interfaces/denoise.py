@@ -173,7 +173,7 @@ class PatchDenoise(SimpleInterface):
             d_par = DenoiseParameters.from_str(self.inputs.denoise_str)
         else:
             d_par = DenoiseParameters()
-            for attr in _denoise_attrs:
+            for attr in PatchDenoise._denoise_attrs:
                 setattr(d_par, attr, getattr(self.inputs, attr))
 
         if isdefined(self.inputs.in_mag):
@@ -183,11 +183,12 @@ class PatchDenoise(SimpleInterface):
             affine = data_mag_nii.affine
         else:
             data_real_nii = nib.load(self.inputs.in_real).get_fdata(dtype=np.float32)
-            data_imag_nii = nib.load(self.inputs.in_imag).get_fdata(dtype=np.float32)
+            affine = data_real_nii.affine
+            data_real = data_real_nii.get_fdata(dtype=np.float32)
+            data_imag = nib.load(self.inputs.in_imag).get_fdata(dtype=np.float32)
             data = 1j * data_imag
             data += data_real
             basename = self.inputs.in_real
-            affine = data_real_nii.affine
 
         if isdefined(self.inputs.mask) and self.inputs.mask:
             mask = np.abs(nib.load(self.inputs.mask).get_fdata()) > 0
@@ -224,7 +225,7 @@ class PatchDenoise(SimpleInterface):
         base = base.replace("_mag", "")
         base = base.replace("_real", "")
         denoise_filename = f"{base}_d_{self.inputs.denoise_method}.nii"
-        noise_map = f"{base}_noise_map.nii"
+        noise_map_filename = f"{base}_noise_map.nii"
 
         denoised_data_img = nib.Nifti1Image(
             np.abs(denoised_data, dtype=np.float32), affine=affine
