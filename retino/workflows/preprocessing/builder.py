@@ -160,15 +160,19 @@ def add_coreg(wf, name, after_node, edge):
     return wf
 
 
-def add_sinker(wf, connections):
+def add_sinker(wf, connections, folder=None):
     """Add connections to sinker.
 
-    connections hould be a list of (node_name, edge, output_name)
+    connections should be a list of (node_name, edge, output_name)
 
     """
+    if folder is None:
+        folder = ""
+    else:
+        folder += ".@"
     sinker = wf.get_node("sinker")
 
     for con in connections:
-        wf.connect(wf.get_node(con[0]), con[1], sinker, con[2])
+        wf.connect(wf.get_node(con[0]), con[1], sinker, f"{folder}{con[2]}")
 
     return wf
