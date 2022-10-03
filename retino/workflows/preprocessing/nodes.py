@@ -9,7 +9,7 @@ import nipype.interfaces.matlab as mlab
 import nipype.interfaces.spm as spm
 from nipype import Function, IdentityInterface, Node, Workflow
 
-from retino.workflows.tools import _get_matlab_cmd, _get_num_thread
+from retino.workflows.tools import func2node, _get_matlab_cmd, _get_num_thread
 
 from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
 from retino.interfaces.tools import Mask
