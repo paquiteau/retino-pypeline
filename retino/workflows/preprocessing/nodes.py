@@ -145,21 +145,45 @@ def conditional_topup_task(name):
     """Return a Node with the conditional execution of a topup workflow."""
 
     def run_topup(sequence, data, data_opposite):
-        from retino.workflows.preprocessing.nodes import topup_task
+        from nipype.interfaces import fsl
+        from nipype import Node
+        from retino.workflows.preprocessing.nodes import topup_task, applytopup_task
+        import os
+
+        base_dir = os.getcwd()
 
         if "EPI" in sequence:
-            topup_wf = topup_task(name="topup_cond")
-            topup_wf.inputs.input.blips = data
-            topup_wf.inputs.input.blip_opposite = data_opposite
-            topup_wf.run()
-            return topup_wf.outputs.output.out
+            roi_ap = Node(
+                fsl.ExtractROI(t_min=3, t_size=1),
+                name="roi_ap",
+                base_dir=base_dir,
+            )
+            roi_ap.inputs.in_file = data
+            res = roi_ap.run()
+            merger = Node(
+                fsl.Merge(dimension="t"),
+                name="merger",
+                base_dir=base_dir,
+            )
+            merger.inputs.in_files = [data_opposite, res.outputs.roi_file]
+            res = merger.run()
+
+            topup = topup_task("topup", base_dir=base_dir)
+            applytopup = applytopup_task("applytopup", base_dir=base_dir)
+            topup.inputs.in_file = res.outputs.merged_file
+            res = topup.run()
+
+            applytopup.inputs.in_topup_fieldcoef = res.outputs.out_fieldcoef
+            applytopup.inputs.in_topup_movpar = res.outputs.out_movpar
+            applytopup.inputs.encoding_file = res.outputs.out_enc_file
+            applytopup.inputs.in_files = data
+
+            res = applytopup.run()
+            return res.outputs.out_corrected
         else:
             return data
 
-    return Node(
-        Function(function=run_topup, input_name=["sequence", "data", "data_opposite"]),
-        name="cond_topup",
-    )
+    return func2node(run_topup, output_names=["out"], name="cond_topup")
 
 
 def coregistration_task(name, working_dir=None, matlab_cmd=None):
