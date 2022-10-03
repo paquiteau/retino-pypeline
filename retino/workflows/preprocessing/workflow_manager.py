@@ -26,13 +26,13 @@ from retino.workflows.preprocessing.nodes import (
 )
 
 _REGEX_SINKER = [
-    (r"rp_sub", "sub"),
-    (r"rrsub", "sub"),
+    (r"_sequence_(.*?)([_/])", r"\g<2>"),
+    (r"_sub_id_(.*?)([_/])", r"\g<2>"),
+    (r"_denoise_config_(.*?)([_/])", r"\g<2>"),
+    (r"_task_(.*?)([_/])", r"\g<2>"),
     (r"rsub", "sub"),
-    (r"_sequence_(.*?)[_/]", "_"),
-    (r"_sub_id_(.*?)[_/]", "_"),
-    (r"_task_(.*?)[_/]", "_"),
-    (r"_sub_(\d\d)", r"sub_\1"),
+    (r"rrsub", "sub"),
+    (r"rpsub", "sub"),
 ]
 
 
