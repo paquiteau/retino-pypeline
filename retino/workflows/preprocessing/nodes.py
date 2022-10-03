@@ -74,6 +74,26 @@ def realign_task(matlab_cmd=None, name="realign"):
     return realign
 
 
+def topup_task(name="topup", base_dir=None):
+    """Topup Task."""
+    topup = Node(myTOPUP(), name=name, base_dir=base_dir)
+    topup.inputs.fwhm = 0
+    topup.inputs.subsamp = 1
+    topup.inputs.out_base = "topup_out"
+    topup.inputs.encoding_direction = ["y-", "y"]
+    topup.inputs.readout_times = 1.0
+    topup.inputs.output_type = "NIFTI"
+    return topup
+
+
+def applytopup_task(name="applytopup", base_dir=None):
+    """Apply topup Task."""
+    applytopup = Node(fsl.ApplyTOPUP(), name=name, base_dir=base_dir)
+    applytopup.inputs.in_index = [1]
+    applytopup.inputs.method = "jac"
+    applytopup.inputs.output_type = "NIFTI"
+    return applytopup
+
 
 def alltopup_task(name="", base_dir=None):
     """Return a Topup Workflow (with inner workflow).
@@ -95,21 +115,9 @@ def alltopup_task(name="", base_dir=None):
     fsl_merger = Node(
         Function(inputs_name=["in1", "in2"], function=fsl_merge), name="merger"
     )
-    # 2.3 Topup Estimation
-    topup = Node(myTOPUP(), name="topup")
-    topup.inputs.fwhm = 0
-    topup.inputs.subsamp = 1
-    topup.inputs.out_base = "topup_out"
-    topup.inputs.encoding_direction = ["y-", "y"]
-    topup.inputs.readout_times = 1.0
-    topup.inputs.output_type = "NIFTI"
-    # 2.4 Topup correction
-    applytopup = Node(fsl.ApplyTOPUP(), name="applytopup")
-    applytopup.inputs.in_index = [1]
-    applytopup.inputs.method = "jac"
-    applytopup.inputs.output_type = "NIFTI"
-
-    topup_wf = Workflow(name=name, base_dir=None)
+    topup = topup_task("topup")
+    applytopup = applytopup_task("applytopup")
+    topup_wf = Workflow(name=name, base_dir=base_dir)
 
     topup_wf.connect(
         [
