@@ -158,13 +158,13 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
     There is two task: Clockwise and Anticlockwise.
     """
 
-    def get_workflow(self, name="preprocessing", build_code=""):
+    def get_workflow(self, name="preprocessing", build_code="v"):
         """Get a Retinotopy workflow."""
-        wf_name = name + ("_{build_code}" if build_code else "")
+        wf_name = name + f"_{build_code}"
         self.set_workflow_name(wf_name)
         return super().get_workflow(build_code)
 
-    def _build(self, wf, build_code=""):
+    def _build(self, wf, build_code="v"):
         """Create a Retinotopy Workflow with option for the order of steps.
 
         Parameters
@@ -175,7 +175,7 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
         -------
         wf : a nipype workflow ready to be run.
         """
-        if build_code in ["", "R"]:
+        if build_code in ["v", "R"]:
             # cached realignment or nothing
             nxt = ("selectfiles", "data")
         elif build_code == "r":
