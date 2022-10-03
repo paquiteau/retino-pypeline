@@ -74,15 +74,16 @@ def realign_task(matlab_cmd=None, name="realign"):
     return realign
 
 
-def topup_task(name=""):
-    """Return a Topup node (with inner workflow).
+
+def alltopup_task(name="", base_dir=None):
+    """Return a Topup Workflow (with inner workflow).
 
     Input: "in.blips" and "in.blip_opposite"
     Output: "out.out"
     """
     in_topup = Node(IdentityInterface(fields=["blips", "blip_opposite"]), name="input")
     out_topup = Node(IdentityInterface(fields=["out"]), name="output")
-    roi_ap = Node(fsl.ExtractROI(t_min=5, t_size=1), name="roi_ap")
+    roi_ap = Node(fsl.ExtractROI(t_min=3, t_size=1), name="roi_ap")
 
     def fsl_merge(in1, in2):
         import nipype.interfaces.fsl as fsl
