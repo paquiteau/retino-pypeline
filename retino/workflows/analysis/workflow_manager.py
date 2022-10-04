@@ -14,8 +14,12 @@ class AnalysisWorkflowManager(WorkflowManager):
 
 
 class RetinoAnalysisWorkflowManager(AnalysisWorkflowManager):
+    """Analysis workflow for retinotopy."""
+
     ...
 
 
 class FirstLevelStats(AnalysisWorkflowManager):
+    """Get first level stats on the preprocessing, eg TSNR."""
+
     ...
