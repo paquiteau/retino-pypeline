@@ -1,3 +1,4 @@
+"""Old Analysis Workflow."""
 from retino.workflows.base import (
     BaseWorkflowFactory,
     node_name,
@@ -7,7 +8,8 @@ from retino.workflows.base import (
 )
 
 from retino.interfaces.glm import DesignMatrixRetino, PhaseMap, ContrastRetino
-from retino.interfaces.tools import Mask, TSNR
+from retino.interfaces.tools import TSNR
+
 import nipype.interfaces.io as nio
 from nipype import Node, Workflow, Function, IdentityInterface
 
@@ -24,7 +26,7 @@ class BaseAnalysisWorkflowFactory(BaseWorkflowFactory):
         return wf.run(plugin)
 
     def build(self, denoise_setting, name):
-        final_wf = Workflow(name=name+denoise_setting, base_dir=self.working_dir)
+        final_wf = Workflow(name=name + denoise_setting, base_dir=self.working_dir)
 
         in_fields = ["sub_id", "sequence", "denoise_method"]
 
@@ -35,7 +37,7 @@ class BaseAnalysisWorkflowFactory(BaseWorkflowFactory):
             "motion_clock",
             "data_anticlock",
             "motion_anticlock",
-            "mask"
+            "mask",
         ]
 
         files = Node(
@@ -53,10 +55,10 @@ class BaseAnalysisWorkflowFactory(BaseWorkflowFactory):
         }
         if denoise_setting == "noisy":
             files.inputs.field_template = {
-                "data_clock": f"sub_%02i/preprocess/noisy/*%s_ClockwiseTask_corrected.nii",
-                "motion_clock": f"sub_%02i/preprocess/noisy/*%s_ClockwiseTask.txt",
-                "data_anticlock": f"sub_%02i/preprocess/noisy/*%s_AntiClockwiseTask_corrected.nii",
-                "motion_anticlock": f"sub_%02i/preprocess/noisy/*%s_AntiClockwiseTask.txt",
+                "data_clock": "sub_%02i/preprocess/noisy/*%s_ClockwiseTask_corrected.nii",
+                "motion_clock": "sub_%02i/preprocess/noisy/*%s_ClockwiseTask.txt",
+                "data_anticlock": "sub_%02i/preprocess/noisy/*%s_AntiClockwiseTask_corrected.nii",
+                "motion_anticlock": "sub_%02i/preprocess/noisy/*%s_AntiClockwiseTask.txt",
             }
             # don't consider the denoise method input params for template format
         else:
@@ -210,12 +212,16 @@ class AnalysisWorkflowFactory(BaseAnalysisWorkflowFactory):
         return final_wf
 
 
-class FirstLevelStatFactory(BaseAnalysisWorkflowFactory):
+class RawStatFactory(BaseAnalysisWorkflowFactory):
+    """First level statistics (tSNR)"""
+
     def build(self, denoise_setting):
         final_wf = super().build(denoise_setting, name="stats")
 
         files = final_wf.get_node("selectfiles")
-        files.inputs.field_template["mask"] = f"sub_%02i/preprocess/{denoise_setting}/*_mask.nii",
+        files.inputs.field_template["mask"] = (
+            f"sub_%02i/preprocess/{denoise_setting}/*_mask.nii",
+        )
         files.inputs.template_args["mask"] = [["sub_id"]]
 
         sinker = final_wf.get_node("sinker")
@@ -223,11 +229,12 @@ class FirstLevelStatFactory(BaseAnalysisWorkflowFactory):
         out_dir = f"stats.{denoise_setting}.@"
 
         for mode in ["clock", "anticlock"]:
-            tsnr = Node(TSNR(), "tsnr_"+mode)
-            final_wf.connect([
-                (files, tsnr, [(f"data_{mode}", "in_file"),
-                               ("anat", "mask_file")]),
-                (tsnr, sinker, [("tsnr_file", out_dir+f"tsnr_{mode}")]),
-            ])
+            tsnr = Node(TSNR(), "tsnr_" + mode)
+            final_wf.connect(
+                [
+                    (files, tsnr, [(f"data_{mode}", "in_file"), ("anat", "mask_file")]),
+                    (tsnr, sinker, [("tsnr_file", out_dir + f"tsnr_{mode}")]),
+                ]
+            )
 
         return final_wf
