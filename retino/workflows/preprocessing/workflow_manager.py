@@ -38,11 +38,13 @@ def _tplt_node(sequence, cached_realignment):
         "anat": "sub_%02i/anat/*_T1.nii",
         "data": "sub_%02i/func/*%s_%sTask.nii",
         "noise": "sub_%02i/preproc_extra/*%s-0v_std.nii",
+        "mask": "sub_%02i/preproc_extra/*%s_%sTask_mask.nii",
     }
     file_template_args = {
         "anat": [["sub_id"]],
         "data": [["sub_id", "sequence", "task"]],
         "noise": [["sub_id", "sequence"]],
+        "mask": [["sub_id", "sequence", "task"]],
     }
 
     if cached_realignment:
@@ -78,7 +80,7 @@ class PreprocessingWorkflowManager(WorkflowManager):
         tplt_node.inputs.cached_realignment = False
         files = file_task(
             infields=templates_args,
-            outfields=["data", "anat", "noise", "motion", "data_opposite"],
+            outfields=["data", "anat", "noise", "mask", "motion", "data_opposite"],
             base_data_dir=self.base_data_dir,
         )
         input_node = wf.get_node("input")

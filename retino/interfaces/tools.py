@@ -69,7 +69,7 @@ class Mask(SimpleInterface):
 
         filename = os.path.basename(self.inputs.in_file).split(".")[0] + "_mask.nii"
         mask_nii.to_filename(filename)
-        self._results["mask"] = filename
+        self._results["mask"] = os.path.abspath(filename)
         return runtime
 
 
