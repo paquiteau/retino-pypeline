@@ -209,22 +209,25 @@ class PatchDenoise(SimpleInterface):
         if d_par.method in ["nordic", "hybrid-pca"]:
             extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
-        # CORE CALL
-        denoised_data, _, noise_std_map = denoise_func(
-            data,
-            patch_shape=d_par.patch_shape,
-            patch_overlap=d_par.patch_overlap,
-            mask=mask,
-            mask_threshold=d_par.mask_threshold,
-            recombination=d_par.recombination,
-            **extra_kwargs,
-        )
-
+        if denoise_func is not None:
+            # CORE CALL
+            denoised_data, _, noise_std_map = denoise_func(
+                data,
+                patch_shape=d_par.patch_shape,
+                patch_overlap=d_par.patch_overlap,
+                mask=mask,
+                mask_threshold=d_par.mask_threshold,
+                recombination=d_par.recombination,
+                **extra_kwargs,
+            )
+        else:
+            denoised_data = data
+            noise_std_map = np.std(data, axis=-1)
         # OUTPUT
         _, base, _ = split_filename(basename)
         base = base.replace("_mag", "")
         base = base.replace("_real", "")
-        denoise_filename = f"{base}_d_{self.inputs.denoise_method}.nii"
+        denoise_filename = f"{base}_d_{d_par.method}.nii"
         noise_map_filename = f"{base}_noise_map.nii"
 
         denoised_data_img = nib.Nifti1Image(
@@ -235,8 +238,8 @@ class PatchDenoise(SimpleInterface):
         noise_map_img = nib.Nifti1Image(noise_std_map, affine=affine)
         noise_map_img.to_filename(noise_map_filename)
 
-        self._results["denoised_data"] = os.path.abspath(denoise_filename)
-        self._results["noise_map_img"] = os.path.abspath(noise_map_img)
+        self._results["denoised_file"] = os.path.abspath(denoise_filename)
+        self._results["noise_std_map"] = os.path.abspath(noise_map_filename)
 
         return runtime
 

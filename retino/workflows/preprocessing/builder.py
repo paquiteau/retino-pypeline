@@ -36,8 +36,10 @@ def add_denoise_mag(wf, name, after_node, edge):
     """Add denoising step for magnitude input."""
     denoise = denoise_node(name)
     input_node = wf.get_node("input")
+    selectfiles = wf.get_node("selectfiles")
+    wf.connect(selectfiles, "noise", denoise, "noise_std_map")
     wf.connect(input_node, "denoise_config", denoise, "denoise_str")
-    return _add_to_wf(wf, after_node, edge, denoise, "in_file_mag")
+    return _add_to_wf(wf, after_node, edge, denoise, "in_mag")
 
 
 def add_topup(wf, name, after_node, edge):

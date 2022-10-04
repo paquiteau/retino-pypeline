@@ -37,10 +37,12 @@ def _tplt_node(sequence, cached_realignment):
     template = {
         "anat": "sub_%02i/anat/*_T1.nii",
         "data": "sub_%02i/func/*%s_%sTask.nii",
+        "noise": "sub_%02i/preproc_extra/*%s-0v_std.nii",
     }
     file_template_args = {
         "anat": [["sub_id"]],
         "data": [["sub_id", "sequence", "task"]],
+        "noise": [["sub_id", "sequence"]],
     }
 
     if cached_realignment == "cached":
@@ -70,11 +72,13 @@ class PreprocessingWorkflowManager(WorkflowManager):
         templates_args = ["sub_id", "sequence", "task"]
 
         # template node needs to be implemented in child classes.
-        tplt_node = func2node(_tplt_node, output_names=["template", "template_args"])
+        tplt_node = func2node(
+            _tplt_node, name="template_node", output_names=["template", "template_args"]
+        )
         tplt_node.inputs.cached_realignment = False
         files = file_task(
             infields=templates_args,
-            outfields=["data", "anat", "motion", "data_opposite"],
+            outfields=["data", "anat", "noise", "motion", "data_opposite"],
             base_data_dir=self.base_data_dir,
         )
         input_node = wf.get_node("input")
@@ -132,6 +136,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         elif build_code == "r":
             # realignment
             wf = add_realign(wf, "realign", "selectfiles", "data")
+
             nxt = ("realign", "realigned_files")
         elif build_code == "rd":
             # realignment, denoising
