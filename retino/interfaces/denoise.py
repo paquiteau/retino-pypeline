@@ -47,7 +47,7 @@ class DenoiseParameters:
     patch_overlap: int = 0
     recombination: str = "weighted"  # "center" is also available
     use_phase: bool = False  # denoise using complex images.
-    mask_threshold: int = 50
+    mask_threshold: int = 25
 
     @property
     def pretty_name(self):
