@@ -193,6 +193,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         sub_id=None,
         sequence=None,
         multi_proc=False,
+        dry=False,
     ):
         if task is None:
             task = ["AntiClockwise", "Clockwise"]
@@ -204,6 +205,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
             sub_id=sub_id,
             sequence=sequence,
             multi_proc=multi_proc,
+            dry=dry,
         )
 
 
