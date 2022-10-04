@@ -21,7 +21,7 @@ from .nodes import mask_node, noise_std_node
 _REGEX_SINKER = [
     (r"_sequence_(.*?)([_/])", r"\g<2>"),
     (r"_sub_id_(.*?)([_/])", r"\g<2>"),
-    (r"_denoise_config_(.*?)([_/])", r"\g<2>"),
+    (r"_denoise_config_(.*?)_", ""),
     (r"_task_(.*?)([_/])", r"\g<2>"),
     (r"rsub", "sub"),
     (r"rrsub", "sub"),
