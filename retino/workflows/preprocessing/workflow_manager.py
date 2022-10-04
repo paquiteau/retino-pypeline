@@ -45,7 +45,7 @@ def _tplt_node(sequence, cached_realignment):
         "noise": [["sub_id", "sequence"]],
     }
 
-    if cached_realignment == "cached":
+    if cached_realignment:
         template["data"] = "sub_%02i/realign/*%s_%sTask.nii"
         template["motion"] = "sub_%02i/realign/*%s_%sTask.txt"
         file_template_args["motion"] = [["sub_id", "sequence", "task"]]
@@ -145,7 +145,8 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
             nxt = ("denoise", "denoised_file")
         elif build_code == "Rd":
             # cached realignement, denoising
-            wf.template_node.cached_realignmnent = True
+            t = wf.get_node("template_node")
+            t.inputs.cached_realignment = True
             wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
             nxt = ("denoise", "denoised_file")
         elif build_code == "dr":
@@ -161,14 +162,17 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
 
         wf = add_topup(wf, "topup", nxt[0], nxt[1])
         wf = add_coreg(wf, "coreg", "cond_topup", "out")
-
         to_sink = [
             ("coreg", "out.coreg_func", "coreg_func"),
             ("coreg", "out.coreg_anat", "coreg_anat"),
         ]
 
-        if "r" in build_code.lower():
+        if "r" in build_code:
             to_sink.append(("realign", "realignment_parameters", "motionparams"))
+        elif "R" in build_code:
+            to_sink.append(("selectfiles", "motion", "motionparams"))
+        else:
+            print("no realignment parameters available")
         if "d" in build_code:
             to_sink.append(("denoise", "noise_std_map", "noise_map"))
 
