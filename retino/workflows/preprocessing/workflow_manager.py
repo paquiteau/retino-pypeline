@@ -154,7 +154,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         elif build_code == "dr":
             # denoising, realigment
             wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
-            wf = add_realign(wf, "realign", "denoise", "denoised_files")
+            wf = add_realign(wf, "realign", "denoise", "denoised_file")
             nxt = ("realign", "realigned_files")
         elif build_code == "d":
             # denoising only
