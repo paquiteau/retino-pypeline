@@ -59,7 +59,7 @@ def add_coreg(wf, name, after_node, edge):
     return _add_to_wf(wf, after_node, edge, coreg, "in.func")
 
 
-def add_sinker(wf, connections, folder=None):
+def add_to_sinker(wf, connections, folder=None):
     """Add connections to sinker.
 
     connections should be a list of (node_name, edge, output_name)

@@ -10,7 +10,7 @@ from retino.workflows.preprocessing.builder import (
     add_coreg,
     add_denoise_mag,
     add_realign,
-    add_sinker,
+    add_to_sinker,
     add_topup,
 )
 
@@ -216,7 +216,7 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
         if "d" in build_code:
             to_sink.append(("denoise", "noise_std_map", "noise_map"))
 
-        wf = add_sinker(wf, to_sink, folder=f"preproc.{build_code}")
+        wf = add_to_sinker(wf, to_sink, folder=f"preproc.{build_code}")
         # extra configuration for  sinker
         sinker = wf.get_node("sinker")
 
@@ -241,7 +241,7 @@ class RealignmentPreprocessingManager(PreprocessingManager):
 
     def _build(self, wf, name="cached_realign"):
         wf = add_realign(wf, name="realign", after_node="selectfiles", edge="data")
-        wf = add_sinker(
+        wf = add_to_sinker(
             wf,
             [
                 ("realign", "realigned_files", "realign.@data"),
