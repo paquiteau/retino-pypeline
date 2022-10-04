@@ -64,7 +64,9 @@ class WorkflowManager:
         """Check the workflow. Also draws a representation."""
         # TODO ascii plot: https://github.com/ggerganov/dot-to-ascii
 
-        fname = wf.write_graph(dotfilename="graph.dot", graph2use=graph2use)
+        fname = wf.write_graph(
+            dotfilename=f"graph_{graph2use}.dot", graph2use=graph2use
+        )
         return fname
 
     def show_graph_nb(self, wf, graph2use="colored", detailed=False):
