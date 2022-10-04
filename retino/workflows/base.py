@@ -78,11 +78,16 @@ class WorkflowManager:
             )
         return Image(self.show_graph(wf))
 
-    def run(self, wf, multi_proc=False, **kwargs):
-        """Run the workflow with iterables parametrization defined in kwargs."""
+    def configure_wf(self, wf, **kwargs):
         inputnode = wf.get_node("input")
         inputnode.iterables = []
         for key in kwargs:
             inputnode.iterables.append((key, kwargs[key]))
+        return wf
+
+    def run(self, wf, multi_proc=False, **kwargs):
+        """Run the workflow with iterables parametrization defined in kwargs."""
+        wf = self.configure_wf(wf, **kwargs)
 
         wf.run(plugin="MultiProc" if multi_proc else None)
+        return wf
