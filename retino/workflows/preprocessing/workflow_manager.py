@@ -5,25 +5,18 @@ First on the built time,  where the overall design of the workflow is selected.
 Then at the run time,  where the parameters for selecting the data and the denoising methods are provided.
 
 """
-from nipype import Workflow
-from retino.workflows.preprocessing.builder import (
+
+from ..base import WorkflowManager
+from ..base_nodes import selectfile_task, file_task
+from ..tools import func2node
+from .builder import (
     add_coreg,
     add_denoise_mag,
     add_realign,
     add_to_sinker,
     add_topup,
 )
-
-from retino.workflows.tools import func2node, _getsubid
-
-from retino.workflows.preprocessing.nodes import (
-    file_task,
-    sinker_task,
-    selectfile_task,
-    mask_node,
-    noise_std_node,
-    input_task,
-)
+from .nodes import mask_node, noise_std_node
 
 _REGEX_SINKER = [
     (r"_sequence_(.*?)([_/])", r"\g<2>"),
@@ -36,7 +29,7 @@ _REGEX_SINKER = [
 ]
 
 
-def template_node(sequence, cached_realignment):
+def _tplt_node(sequence, cached_realignment):
     """Template node as a Function to handle cached realignment.
 
     TODO add support for complex according to the denoising config string.
@@ -60,34 +53,12 @@ def template_node(sequence, cached_realignment):
     return template, file_template_args
 
 
-class PreprocessingManager:
+class PreprocessingWorkflowManager(WorkflowManager):
     """Manager for preprocessing workflow."""
 
-    def __init__(self, base_data_dir, working_dir):
-        self.base_data_dir = base_data_dir
-        self.working_dir = working_dir
-        self._workflow_name = ""
+    input_fields = ["sub_id", "sequence", "denoise_config", "task"]
 
-    def set_workflow_name(self, name):
-        self._workflow_name = name
-
-    def show_graph(self, wf, graph2use="colored"):
-        """Check the workflow. Also draws a representation."""
-        # TODO ascii plot: https://github.com/ggerganov/dot-to-ascii
-
-        fname = wf.write_graph(dotfilename="graph.dot", graph2use=graph2use)
-        return fname
-
-    def show_graph_nb(self, wf, graph2use="colored", detailed=False):
-        from IPython.display import Image
-
-        if detailed:
-            return Image(
-                self.show_graph(wf, graph2use=graph2use).split(".")[0] + "_detailed.png"
-            )
-        return Image(self.show_graph(wf))
-
-    def _base_build(self):
+    def _build_files(self, wf):
         """
         Build the base of preprocessing workflow.
 
@@ -96,21 +67,17 @@ class PreprocessingManager:
            |-> files
            |-> sinker
         """
-        wf = Workflow(self._workflow_name, base_dir=self.working_dir)
-
-        in_fields = ["sub_id", "sequence", "denoise_config", "task"]
         templates_args = ["sub_id", "sequence", "task"]
 
-        input_node = input_task(in_fields)
-        tplt_node = func2node(template_node, output_names=["template", "template_args"])
+        # template node needs to be implemented in child classes.
+        tplt_node = func2node(_tplt_node, output_names=["template", "template_args"])
         tplt_node.inputs.cached_realignment = False
         files = file_task(
             infields=templates_args,
             outfields=["data", "anat", "motion", "data_opposite"],
             base_data_dir=self.base_data_dir,
         )
-        sinker = sinker_task(self.base_data_dir)
-
+        input_node = wf.get_node("input")
         wf.connect(
             [
                 (input_node, tplt_node, [("sequence", "sequence")]),
@@ -127,42 +94,26 @@ class PreprocessingManager:
                     files,
                     [("sub_id", "sub_id"), ("sequence", "sequence"), ("task", "task")],
                 ),
-                (input_node, sinker, [(("sub_id", _getsubid), "container")]),
             ]
         )
 
         return wf
 
-    def _build():
-        raise NotImplementedError()
 
-    def get_workflow(self, *args, **kwargs):
-        """Get a preprocessing workflow."""
-        wf = self._base_build()
-        wf = self._build(wf, *args, **kwargs)
-        return wf
-
-    def run(self, wf, multi_proc=False, **kwargs):
-        """Run the workflow with iterables parametrization defined in kwargs."""
-        inputnode = wf.get_node("input")
-        inputnode.iterables = []
-        for key in kwargs:
-            inputnode.iterables.append((key, kwargs[key]))
-
-        wf.run(plugin="MultiProc" if multi_proc else None)
-
-
-class RetinotopyPreprocessingManager(PreprocessingManager):
+class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
     """Manager for Retinotopy base workflow.
 
     There is two task: Clockwise and Anticlockwise.
     """
 
-    def get_workflow(self, name="preprocessing", build_code="v"):
+    workflow_name = "preprocessing"
+
+    def get_workflow(self, build_code="v"):
         """Get a Retinotopy workflow."""
-        wf_name = name + f"_{build_code}"
-        self.set_workflow_name(wf_name)
-        return super().get_workflow(build_code)
+        return super().get_workflow(
+            extra_wfname=f"_{build_code}",
+            build_code=build_code,
+        )
 
     def _build(self, wf, build_code="v"):
         """Create a Retinotopy Workflow with option for the order of steps.
@@ -223,7 +174,15 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
         sinker.inputs.regexp_substitutions = _REGEX_SINKER
         return wf
 
-    def run(self, wf, task=None, denoise_config=None, sub_id=None, sequence=None):
+    def run(
+        self,
+        wf,
+        task=None,
+        denoise_config=None,
+        sub_id=None,
+        sequence=None,
+        multi_proc=False,
+    ):
         if task is None:
             task = ["AntiClockwise", "Clockwise"]
 
@@ -233,13 +192,16 @@ class RetinotopyPreprocessingManager(PreprocessingManager):
             denoise_config=denoise_config,
             sub_id=sub_id,
             sequence=sequence,
+            multi_proc=multi_proc,
         )
 
 
-class RealignmentPreprocessingManager(PreprocessingManager):
+class RealignmentPreprocessingManager(PreprocessingWorkflowManager):
     """Manager for a simple Realignment Only Workflow."""
 
-    def _build(self, wf, name="cached_realign"):
+    workflow_name = "cached_realign"
+
+    def _build(self, wf):
         wf = add_realign(wf, name="realign", after_node="selectfiles", edge="data")
         wf = add_to_sinker(
             wf,
@@ -252,23 +214,23 @@ class RealignmentPreprocessingManager(PreprocessingManager):
         # configure sinker
         sinker = wf.get_node("sinker")
         sinker.inputs.regexp_substitutions = _REGEX_SINKER + [
-            (r"realign/_", "realign/")
+            (r"realign/_", "realign/"),
+            (r"rp_sub", "sub"),
         ]
         return wf
 
 
-class NoisePreprocManager(PreprocessingManager):
+class NoisePreprocManager(PreprocessingWorkflowManager):
     """Workflow Manager for Noise Preprocessing steps (noise map, mask, G-Map)."""
 
+    input_fields = ["sub_id", "sequence"]
+    workflow_name = "noise_preprocessing"
+
     def get_workflow(self):
-        self.set_workflow_name("noise_preprocessing")
         return super().get_workflow(self)
 
-    def _base_build(self):
+    def _build_files(self, wf):
         """Return a Workflow with minimal nodes."""
-        wf = Workflow(name=self._workflow_name, base_dir=self.working_dir)
-
-        infields = ["sub_id", "sequence"]
         template_args = {
             "noise": [["sub_id", "sequence"]],
             # "smaps": [["sub_id"]],
@@ -280,19 +242,16 @@ class NoisePreprocManager(PreprocessingManager):
             # "smaps": "sub_%02i/extra/*",
             "data": "sub_%02i/func/*%s_ClockwiseTask.nii",
         }
-        input_node = input_task(infields)
         files = selectfile_task(
-            infields=infields,
+            infields=self.input_fields,
             template=template,
             template_args=template_args,
             base_data_dir=self.base_data_dir,
         )
-        sinker = sinker_task(self.base_data_dir)
-
+        input_node = wf.get_node("input")
         wf.connect(
             [
                 (input_node, files, [("sub_id", "sub_id"), ("sequence", "sequence")]),
-                (input_node, sinker, [(("sub_id", _getsubid), "container")]),
             ]
         )
         return wf

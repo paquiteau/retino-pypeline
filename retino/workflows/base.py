@@ -1,38 +1,86 @@
-class BaseWorkflowFactory:
-    def __init__(self):
+"""Base Workflow Manager.
 
-        self._wf = None
+A workflow manager is responsible for the creation and execution of a Nipype workflow.
 
-    def build(
-        self,
-    ):
-        return NotImplementedError
+The creation of a workflow is done using the `get_workflow` method, which create a workflow in 3 main step
 
-    @staticmethod
-    def run(wf, iter_on=None, plugin=None):
-        if iter_on is not None:
-            wf.get_node("infosource").iterables = iter_on
-        wf.run(plugin)
+1. add the input and sinker node with the input fields. `_base_build`
+2. add the files grabber nodes `_build_files`
+3. add the processing nodes   `_build`
 
-    @staticmethod
-    def show_graph(wf):
-        fname = wf.write_graph(dotfilename="graph.dot", graph2use="colored")
+"""
+from nipype import Workflow
+
+from .base_nodes import input_task, sinker_task
+from .tools import _getsubid
+
+
+class WorkflowManager:
+    """Base Workflow Managers."""
+
+    input_fields = []
+    workflow_name = ""
+
+    def __init__(self, base_data_dir, working_dir):
+        self.base_data_dir = base_data_dir
+        self.working_dir = working_dir
+
+    def _base_build(self, extra_wfname=""):
+        """
+        Build the base of preprocessing workflow.
+
+        4 nodes are created and added:
+        - Input -> template_node -> selectfiles
+           |-> files
+           |-> sinker
+        """
+        wf = Workflow(name=self.workflow_name + extra_wfname, base_dir=self.working_dir)
+
+        input_node = input_task(self.input_fields)
+        sinker = sinker_task(self.base_data_dir)
+
+        wf.connect(
+            [
+                (input_node, sinker, [(("sub_id", _getsubid), "container")]),
+            ]
+        )
+        return wf
+
+    def _build_files(self, wf):
+        """Add the files templates nodes."""
+        raise NotImplementedError
+
+    def _build(self, wf):
+        return wf
+
+    def get_workflow(self, *args, extra_wfname="", **kwargs):
+        """Get a preprocessing workflow."""
+        wf = self._base_build(extra_wfname)
+        wf = self._build_files(wf)
+        wf = self._build(wf, *args, **kwargs)
+        return wf
+
+    def show_graph(self, wf, graph2use="colored"):
+        """Check the workflow. Also draws a representation."""
+        # TODO ascii plot: https://github.com/ggerganov/dot-to-ascii
+
+        fname = wf.write_graph(dotfilename="graph.dot", graph2use=graph2use)
         return fname
 
+    def show_graph_nb(self, wf, graph2use="colored", detailed=False):
+        from IPython.display import Image
 
-def node_name(name, extra):
-    if isinstance(extra, (tuple, list)):
-        extra = "_".join(extra)
-    return name + ("_" + extra if extra else "")
+        if detailed:
+            return Image(
+                self.show_graph(wf, graph2use=graph2use).split(".")[0] + "_detailed.png"
+            )
+        return Image(self.show_graph(wf))
 
+    def run(self, wf, multi_proc=False, **kwargs):
+        """Run the workflow with iterables parametrization defined in kwargs."""
+        inputnode = wf.get_node("input")
+        inputnode.iterables = []
+        for key in kwargs:
+            inputnode.iterables.append((key, kwargs[key]))
 
-def getsubid(i):
-    return f"sub_{i:02d}"
-
-
-def subid_varname(i):
-    return f"_sub_id_{i}"
-
-
-def get_key(d, k):
-    return d[k]
+        wf.run(plugin="MultiProc" if multi_proc else None)
