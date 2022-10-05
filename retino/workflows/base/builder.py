@@ -1,7 +1,7 @@
 """Base builder function."""
 
 
-def add_to_sinker(wf, connections, folder=None):
+def add2sinker(wf, connections, folder=None):
     """Add connections to sinker.
 
     connections should be a list of (node_name, edge, output_name)
@@ -27,7 +27,7 @@ def add2wf(wf, after_node, edge_out, node, edge_in):
     return wf
 
 
-def add_to_wf_identity(wf, node_out, node_in, edges):
+def add2wf_dwim(wf, node_out, node_in, edges):
     """Connect two node with same edge label."""
     if not isinstance(edges, list):
         edges = list(edges)

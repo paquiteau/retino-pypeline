@@ -8,7 +8,7 @@ the denoising methods are provided.
 """
 
 from ..base.workflow_manager import WorkflowManager
-from ..base.builder import add_to_sinker, add_to_wf_identity
+from ..base.builder import add2sinker, add2wf_dwim
 from ..base.nodes import selectfile_task, file_task
 from ..tools import func2node
 from .builder import (
@@ -87,14 +87,14 @@ class PreprocessingWorkflowManager(WorkflowManager):
             base_data_dir=self.base_data_dir,
         )
         input_node = wf.get_node("input")
-        wf = add_to_wf_identity(wf, input_node, tplt_node, "sequence")
-        wf = add_to_wf_identity(
+        wf = add2wf_dwim(wf, input_node, tplt_node, "sequence")
+        wf = add2wf_dwim(
             wf,
             tplt_node,
             files,
             ["field_template", "template_args"],
         )
-        wf = add_to_wf_identity(wf, input_node, files, templates_args)
+        wf = add2wf_dwim(wf, input_node, files, templates_args)
         return wf
 
 
@@ -171,7 +171,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         if "d" in build_code:
             to_sink.append(("denoise", "noise_std_map", "noise_map"))
 
-        wf = add_to_sinker(wf, to_sink, folder=f"preproc.{build_code}")
+        wf = add2sinker(wf, to_sink, folder=f"preproc.{build_code}")
         # extra configuration for  sinker
         sinker = wf.get_node("sinker")
 
@@ -214,7 +214,7 @@ class RealignmentPreprocessingManager(PreprocessingWorkflowManager):
 
     def _build(self, wf):
         wf = add_realign(wf, name="realign", after_node="selectfiles", edge="data")
-        wf = add_to_sinker(
+        wf = add2sinker(
             wf,
             [
                 ("realign", "realigned_files", "realign.@data"),
