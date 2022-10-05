@@ -151,6 +151,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         elif build_code == "d":
             # denoising only
             wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
+            nxt = ("denoise", "denoised_file")
         else:
             raise ValueError("Unsupported build code.")
 
