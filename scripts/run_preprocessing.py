@@ -38,6 +38,7 @@ parser.add_argument(
 parser.add_argument(
     "--denoise-config",
     type=str,
+    nargs="+",
     help="denoiser config string",
 )
 parser.add_argument(
@@ -74,18 +75,24 @@ if __name__ == "__main__":
     noise_prep_mgr = NoisePreprocManager(ns.dataset, ns.tmpdir)
     noise_prep_wf = noise_prep_mgr.get_workflow()
     noise_prep_mgr.run(
-        noise_prep_wf, multi_proc=True, sub_id=ns.sub, sequence=ns.sequence, dry=ns.dry
-    )
-
-    prep_mgr = RetinotopyPreprocessingManager(ns.dataset, ns.tmpdir)
-    prep_mgr_wf = prep_mgr.get_workflow(build_code=ns.build_code)
-
-    prep_mgr.run(
-        prep_mgr_wf,
+        noise_prep_wf,
         multi_proc=True,
         dry=ns.dry,
         sub_id=ns.sub,
-        task=ns.task,
         sequence=ns.sequence,
-        denoise_config=ns.denoise_config,
+        task=ns.task,
     )
+
+    prep_mgr = RetinotopyPreprocessingManager(ns.dataset, ns.tmpdir)
+    for bc in ns.build_code:
+        prep_mgr_wf = prep_mgr.get_workflow(build_code=bc)
+
+        prep_mgr.run(
+            prep_mgr_wf,
+            multi_proc=True,
+            dry=ns.dry,
+            sub_id=ns.sub,
+            task=ns.task,
+            sequence=ns.sequence,
+            denoise_config=ns.denoise_config,
+        )
