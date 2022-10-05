@@ -1,15 +1,36 @@
+"""Function to perform first level glm analysis."""
 import numpy as np
 import pandas as pd
 from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
 
 
 def make_design_matrix(
-    fmri_timeserie, motion, n_cycles, clockwise=True, TR=1.0, min_onset=0
+    n_scans,
+    n_cycles,
+    motion=None,
+    clockwise=True,
+    TR=1.0,
+    min_onset=0,
 ):
+    """Create a design matrix for retinotopy.
 
+    Parameters
+    ----------
+    n_scans: int
+        Number of time point
+    n_cycle: int
+        The number of turn of the retinotopy.
+    motion: np.ndarray, optional
+        Motion estimation parameters, used as regressors.
+    clockwise: bool
+        the rotation sens for the retinotopy
+    TR: float
+        Volumetric TR (time for a scan)
+    min_onset: int
+        start of the experiment
+    """
     sign = clockwise * 2 - 1  # clockwise = 1, anticlockwise = -1
 
-    n_scans = fmri_timeserie.shape[-1]
     cos_reg = np.cos(
         -np.pi / 2 + sign * np.arange(n_scans) * 2 * n_cycles * np.pi / n_scans
     )
@@ -17,7 +38,10 @@ def make_design_matrix(
         -np.pi / 2 + sign * np.arange(n_scans) * 2 * n_cycles * np.pi / n_scans
     )
 
-    regs = np.hstack((cos_reg[:, None], sin_reg[:, None], motion))
+    if motion:
+        regs = np.hstack((cos_reg[:, None], sin_reg[:, None], motion))
+    else:
+        regs = np.hstack((cos_reg[:, None], sin_reg[:, None]))
 
     return make_first_level_design_matrix(
         np.arange(n_scans) * TR,
@@ -31,8 +55,8 @@ def make_design_matrix(
 
 
 def get_contrast_zscore(fmri_timeseries, design_matrices, TR, first_level_kwargs=None):
-
-    first_level_kwargs = first_level_kwargs or dict()
+    """Get contrast for the retinotopy."""
+    first_level_kwargs = first_level_kwargs or {}
 
     if isinstance(design_matrices, list):
         design_matrices = [pd.read_csv(dm, index_col=0) for dm in design_matrices]
@@ -70,7 +94,7 @@ def get_contrast_zscore(fmri_timeseries, design_matrices, TR, first_level_kwargs
 
 
 def glm_phase_map(cos_clock, sin_clock, cos_anticlock, sin_anticlock):
-
+    """Compute the phase map."""
     phase_clock = np.arctan2(-cos_clock, -sin_clock)
     phase_anticlock = np.arctan2(cos_anticlock, -sin_anticlock)
     print(
