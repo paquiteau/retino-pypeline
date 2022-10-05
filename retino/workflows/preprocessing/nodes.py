@@ -1,4 +1,4 @@
-"""Collections of function to create ready to connect nodes to use in preprocessin workflow.
+"""Collections of function to create nodes to use in preprocessin workflow.
 
 Some Nodes are implemented as Nipype workflow but don't worry about that.
 """
