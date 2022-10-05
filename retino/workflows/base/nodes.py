@@ -44,5 +44,5 @@ def selectfile_task(template, base_data_dir, template_args=None, infields=None):
         name="selectfiles",
     )
     files.inputs.field_template = template
-    files.inputs.templates_args = template_args
+    files.inputs.template_args = template_args
     return files

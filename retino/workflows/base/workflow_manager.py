@@ -2,7 +2,8 @@
 
 A workflow manager is responsible for the creation and execution of a Nipype workflow.
 
-The creation of a workflow is done using the `get_workflow` method, which create a workflow in 3 main step
+The creation of a workflow is done using the `get_workflow` method, which create a
+workflow in 3 main step
 
 1. add the input and sinker node with the input fields. `_base_build`
 2. add the files grabber nodes `_build_files`
@@ -11,12 +12,29 @@ The creation of a workflow is done using the `get_workflow` method, which create
 """
 from nipype import Workflow
 
-from .base_nodes import input_task, sinker_task
-from .tools import _getsubid
+from .nodes import input_task, sinker_task
+from ..tools import _getsubid
 
 
 class WorkflowManager:
-    """Base Workflow Managers."""
+    """Base Workflow Managers.
+
+    The structure of the workflow  after `get_workflow` is the following
+
+                 +----------------+    +----------------+    +----------+
+    +-------+    | template_node  |    |  selectfile    |    |  Nodes   |   +---------+
+    | input |--->|  optional, see |--->|   from         |    |   from   |   | sinker  |
+    +---+---+    | _build_files() |    | _build_files() |    | _build() |   +---------+
+        |        +----------------+    +----------------+    +----------+        ^
+        |                                                                        |
+        +-------(sub_id -> container)--------------------------------------------+
+
+
+    A nicer visualisation of the workflow is available with `show_graph` or
+    `show_graph_nb` (for IPython notebook)
+
+    After setup the manager can also be used to run the workflow.
+    """
 
     input_fields = []
     workflow_name = ""
@@ -81,8 +99,9 @@ class WorkflowManager:
     def configure(self, wf, **kwargs):
         inputnode = wf.get_node("input")
         inputnode.iterables = []
-        for key in kwargs:
-            inputnode.iterables.append((key, kwargs[key]))
+        for key, iterable in kwargs.items():
+            if iterable is not None:
+                inputnode.iterables.append((key, iterable))
         return wf
 
     def run(self, wf, multi_proc=False, dry=False, **kwargs):
