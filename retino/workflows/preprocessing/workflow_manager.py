@@ -190,6 +190,11 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         if task is None:
             task = ["AntiClockwise", "Clockwise"]
 
+        # get build code back:
+        bc = wf.name.split("_")[1]
+        if bc in ["v", "r"]:
+            denoise_config = None
+
         return super().run(
             wf,
             task=task,
