@@ -11,3 +11,6 @@ requires = ["setuptools", "wheel"]
 
 # Formatting using black.
 [tool.black]
+
+[tool.isort]
+profile = "black"
