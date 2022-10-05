@@ -6,30 +6,13 @@ from retino.workflows.preprocessing.nodes import (
     realign_task,
 )
 
-
-def _getsubid(i):
-    return f"sub_{i:02d}"
-
-
-def _subid_varname(i):
-    return f"_sub_id_{i}"
-
-
-def _get_key(d, k):
-    return d[k]
-
-
-def _add_to_wf(wf, after_node, edge_out, node, edge_in):
-    if isinstance(after_node, str):
-        after_node = wf.get_node(after_node)
-    wf.connect(after_node, edge_out, node, edge_in)
-    return wf
+from ..base.builder import add2wf
 
 
 def add_realign(wf, name, after_node, edge):
     """Add a Realignment node."""
     realign = realign_task(name=name)
-    return _add_to_wf(wf, after_node, edge, realign, "in_files")
+    return add2wf(wf, after_node, edge, realign, "in_files")
 
 
 def add_denoise_mag(wf, name, after_node, edge):
@@ -40,7 +23,7 @@ def add_denoise_mag(wf, name, after_node, edge):
     wf.connect(selectfiles, "noise", denoise, "noise_std_map")
     wf.connect(selectfiles, "mask", denoise, "mask")
     wf.connect(input_node, "denoise_config", denoise, "denoise_str")
-    return _add_to_wf(wf, after_node, edge, denoise, "in_mag")
+    return add2wf(wf, after_node, edge, denoise, "in_mag")
 
 
 def add_topup(wf, name, after_node, edge):
@@ -51,7 +34,7 @@ def add_topup(wf, name, after_node, edge):
     # also adds mandatory connections
     wf.connect(input_node, "sequence", condtopup, "sequence")
     wf.connect(selectfiles, "data_opposite", condtopup, "data_opposite")
-    return _add_to_wf(wf, after_node, edge, condtopup, "data")
+    return add2wf(wf, after_node, edge, condtopup, "data")
 
 
 def add_coreg(wf, name, after_node, edge):
@@ -59,22 +42,4 @@ def add_coreg(wf, name, after_node, edge):
     coreg = coregistration_task(name)
     # also add mandatory connections:
     wf.connect(wf.get_node("selectfiles"), "anat", coreg, "in.anat")
-    return _add_to_wf(wf, after_node, edge, coreg, "in.func")
-
-
-def add_to_sinker(wf, connections, folder=None):
-    """Add connections to sinker.
-
-    connections should be a list of (node_name, edge, output_name)
-
-    """
-    if folder is None:
-        folder = ""
-    else:
-        folder += ".@"
-    sinker = wf.get_node("sinker")
-
-    for con in connections:
-        wf.connect(wf.get_node(con[0]), con[1], sinker, f"{folder}{con[2]}")
-
-    return wf
+    return add2wf(wf, after_node, edge, coreg, "in.func")
