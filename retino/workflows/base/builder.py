@@ -30,6 +30,6 @@ def add2wf(wf, after_node, edge_out, node, edge_in):
 def add2wf_dwim(wf, node_out, node_in, edges):
     """Connect two node with same edge label."""
     if not isinstance(edges, list):
-        edges = list(edges)
+        edges = [edges]
     wf.connect([(node_out, node_in, [(edge, edge) for edge in edges])])
     return wf
