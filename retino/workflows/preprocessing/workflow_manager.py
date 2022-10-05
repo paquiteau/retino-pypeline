@@ -2,18 +2,19 @@
 
 The management of workflow happens at two levels:
 First on the built time,  where the overall design of the workflow is selected.
-Then at the run time,  where the parameters for selecting the data and the denoising methods are provided.
+Then at the run time,  where the parameters for selecting the data and
+the denoising methods are provided.
 
 """
 
-from ..base import WorkflowManager
-from ..base_nodes import selectfile_task, file_task
+from ..base.workflow_manager import WorkflowManager
+from ..base.builder import add_to_sinker, add_to_wf_identity
+from ..base.nodes import selectfile_task, file_task
 from ..tools import func2node
 from .builder import (
     add_coreg,
     add_denoise_mag,
     add_realign,
-    add_to_sinker,
     add_topup,
 )
 from .nodes import mask_node, noise_std_node
@@ -75,7 +76,9 @@ class PreprocessingWorkflowManager(WorkflowManager):
 
         # template node needs to be implemented in child classes.
         tplt_node = func2node(
-            _tplt_node, name="template_node", output_names=["template", "template_args"]
+            _tplt_node,
+            name="template_node",
+            output_names=["field_template", "template_args"],
         )
         tplt_node.inputs.cached_realignment = False
         files = file_task(
@@ -84,25 +87,14 @@ class PreprocessingWorkflowManager(WorkflowManager):
             base_data_dir=self.base_data_dir,
         )
         input_node = wf.get_node("input")
-        wf.connect(
-            [
-                (input_node, tplt_node, [("sequence", "sequence")]),
-                (
-                    tplt_node,
-                    files,
-                    [
-                        ("template", "field_template"),
-                        ("template_args", "template_args"),
-                    ],
-                ),
-                (
-                    input_node,
-                    files,
-                    [("sub_id", "sub_id"), ("sequence", "sequence"), ("task", "task")],
-                ),
-            ]
+        wf = add_to_wf_identity(wf, input_node, tplt_node, "sequence")
+        wf = add_to_wf_identity(
+            wf,
+            tplt_node,
+            files,
+            ["field_template", "template_args"],
         )
-
+        wf = add_to_wf_identity(wf, input_node, files, templates_args)
         return wf
 
 
