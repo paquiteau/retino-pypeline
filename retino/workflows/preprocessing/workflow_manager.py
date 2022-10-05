@@ -236,7 +236,7 @@ class RealignmentPreprocessingManager(PreprocessingWorkflowManager):
 class NoisePreprocManager(PreprocessingWorkflowManager):
     """Workflow Manager for Noise Preprocessing steps (noise map, mask, G-Map)."""
 
-    input_fields = ["sub_id", "sequence"]
+    input_fields = ["sub_id", "sequence", "task"]
     workflow_name = "noise_preprocessing"
 
     def get_workflow(self):
@@ -244,29 +244,25 @@ class NoisePreprocManager(PreprocessingWorkflowManager):
 
     def _build_files(self, wf):
         """Return a Workflow with minimal nodes."""
-        template_args = {
-            "noise": [["sub_id", "sequence"]],
-            # "smaps": [["sub_id"]],
-            "data": [["sub_id", "sequence"]],
-        }
-
         template = {
+            "data": "sub_%02i/func/*%s_%sTask.nii",
             "noise": "sub_%02i/extra/*%s-0v.nii",
             # "smaps": "sub_%02i/extra/*",
-            "data": "sub_%02i/func/*%s_ClockwiseTask.nii",
         }
+        template_args = {
+            "data": [["sub_id", "sequence", "task"]],
+            "noise": [["sub_id", "sequence"]],
+            # "smaps": [["sub_id"]],
+        }
+
         files = selectfile_task(
-            infields=self.input_fields,
+            infields=["sub_id", "sequence", "task"],
             template=template,
             template_args=template_args,
             base_data_dir=self.base_data_dir,
         )
         input_node = wf.get_node("input")
-        wf.connect(
-            [
-                (input_node, files, [("sub_id", "sub_id"), ("sequence", "sequence")]),
-            ]
-        )
+        wf.connect([(input_node, files, [(a, a) for a in self.input_fields])])
         return wf
 
     def _build(self, wf, *args, **kwargs):
