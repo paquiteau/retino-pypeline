@@ -1,7 +1,6 @@
 """Nipype Interface for NORDIC Code."""
 
-import os
-import sys
+from pathlib import Path
 from nipype.interfaces.base import (
     TraitedSpec,
     isdefined,
@@ -17,6 +16,7 @@ class NORDICInputSpec(MatlabInputSpec):
     file_mag = File(mandatory=True, exists=True, desc="the magnitude nifti file.")
     file_phase = File(exists=True, desc="the magnitude nifti file.")
     file_out_mag = File(desc="output_name for the magnitude file")
+    nordic_path = File(desc="location of NIFTI_NORDIC.m file.")
     arg_mp = traits.Enum(
         0,
         1,
@@ -85,11 +85,16 @@ class NORDICDenoiser(MatlabCommand):
             file_phase = self.inputs.file_phase
         else:
             mstruct += "ARG.magnitude_only = 1;\n"
+
         self._file_out = self.inputs.file_mag.split(".")[0] + "_NORDIC.nii"
 
+        if isdefined(self.inputs.nordic_path):
+            nordic_path = self.inputs.nordic_path
+        else:
+            nordic_path = Path(__file__).parents[2] / "libs/NORDIC_Raw"
         script = """
-disp("hello from python");
 {mstruct}
+addpath('{nordic_path}');
 disp(ARG);
 NIFTI_NORDIC('{file_mag}', '{file_phase}', '{file_out}', ARG);
         """.format(
@@ -97,14 +102,14 @@ NIFTI_NORDIC('{file_mag}', '{file_phase}', '{file_out}', ARG);
             file_mag=self.inputs.file_mag,
             file_phase=file_phase,
             file_out=self._file_out,
+            nordic_path=nordic_path,
         )
-
+        print(script)
         return script
 
     def run(self, **inputs):
         self.inputs.single_comp_thread = False
         self.inputs.script = self._nordic_script()
-        print("matlab_cmd", self.inputs)
         results = super(MatlabCommand, self).run(**inputs)
         stdout = results.runtime.stdout
         stderr = results.runtime.stderr
@@ -115,5 +120,5 @@ NIFTI_NORDIC('{file_mag}', '{file_phase}', '{file_out}', ARG);
 
     def _list_outputs(self):
         outputs = self._outputs().get()
-        outputs["file_out_mag"] = os.path.abspath(self._file_out)
+        outputs["file_out_mag"] = Path(self._file_out).resolve()
         return outputs
