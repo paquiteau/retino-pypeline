@@ -39,7 +39,7 @@ def add2wf_dwim(wf, node_out, node_in, edges):
     for edge in edges:
         if isinstance(edge, str):
             wf.connect(node_out, edge, node_in, edge)
-        elif isinstance(edge, tuple) and len(edge) == 2
+        elif isinstance(edge, tuple) and len(edge) == 2:
             wf.connect(node_out, edge[0], node_in, edge[1])
         else:
             raise ValueError(f"Unsupported edge config {edge}")
