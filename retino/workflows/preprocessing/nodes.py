@@ -143,7 +143,7 @@ def conditional_topup_task(name):
         else:
             return data
 
-    return func2node(run_topup, output_names=["out"], name="cond_topup")
+    return func2node(run_topup, output_names=["out"], name=name)
 
 
 def coregistration_task(name, working_dir=None, matlab_cmd=None):
