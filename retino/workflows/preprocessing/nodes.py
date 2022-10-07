@@ -219,7 +219,7 @@ def cond_denoise_task(name):
     def cond_node(denoise_str, mask, noise_std_map, data, data_phase=None, motion=None):
         from retino.interfaces.denoise import PatchDenoise, NORDICDenoiser
         from retino.interfaces.motion import RealImag2MagPhase
-        from . import _apply_cplx_realignment
+        from retino.workflows.preprocessing.nodes import _apply_cplx_realignment
 
         # denoise string is defined as method-name_patch-size_patch-overlap
         code = denoise_str.split("_")
@@ -256,11 +256,11 @@ def cond_denoise_task(name):
         denoiser.inputs.mask = mask
         denoiser.inputs.noise_std_map = noise_std_map
         results = denoiser.run()
-        return results.outputs.denoised_file
+        return results.outputs.denoised_file, results.outputs.noise_std_map
 
     return func2node(
         cond_node,
-        output_names=["denoised_file"],
+        output_names=["denoised_file", "noise_std_map"],
         name=name,
     )
 

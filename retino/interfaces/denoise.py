@@ -173,7 +173,7 @@ class PatchDenoise(SimpleInterface):
             basename = self.inputs.in_mag
             affine = data_mag_nii.affine
         else:
-            data_real_nii = nib.load(self.inputs.in_real).get_fdata(dtype=np.float32)
+            data_real_nii = nib.load(self.inputs.in_real)
             affine = data_real_nii.affine
             data_real = data_real_nii.get_fdata(dtype=np.float32)
             data_imag = nib.load(self.inputs.in_imag).get_fdata(dtype=np.float32)

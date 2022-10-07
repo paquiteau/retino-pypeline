@@ -34,7 +34,7 @@ REALIGN = "realign"
 TOPUP = "topup"
 COREG = "coreg"
 FILES = "selectfiles"
-SINKER = "sink"
+SINKER = "sinker"
 INPUT = "input"
 TEMPLATE = "template_node"
 
@@ -60,7 +60,7 @@ def add_denoise_mag(wf, name, after_node, edge):
 def add_denoise_cpx(wf, name, after_realign=False):
     """Add denoising step for magnitude input."""
     denoise = cond_denoise_task(name)
-    add2wf_dwim(wf, FILES, denoise, ["noise_std_map", "mask", "data", "data+_phase"])
+    add2wf_dwim(wf, FILES, denoise, ["noise_std_map", "mask", "data", "data_phase"])
     add2wf_dwim(wf, INPUT, denoise, "denoise_str")
     if after_realign:
         add2wf_dwim(wf, REALIGN, denoise, ("realignment_parameters", "motion"))
@@ -71,8 +71,8 @@ def add_topup(wf, name, after_node, edge):
     condtopup = conditional_topup_task(name)
     # also adds mandatory connections
     add2wf_dwim(wf, INPUT, condtopup, "sequence")
-    add2wf_dwim(FILES, condtopup, "data_opposite")
-    add2wf(wf, after_node, edge, condtopup, "data")
+    add2wf_dwim(wf, FILES, condtopup, "data_opposite")
+    add2wf_dwim(wf, after_node, condtopup, (edge, "data"))
 
 
 def add_coreg(wf, name, after_node, edge):
@@ -80,7 +80,7 @@ def add_coreg(wf, name, after_node, edge):
     coreg = coregistration_task(name)
     # also add mandatory connections:
     wf.connect(wf.get_node(FILES), "anat", coreg, "in.anat")
-    add2wf(wf, after_node, edge, coreg, "in.func")
+    add2wf_dwim(wf, after_node, coreg, (edge, "in.func"))
 
 
 ########################################
@@ -103,6 +103,7 @@ def _tplt_node(sequence, cached_realignment):
     file_template_args = {
         "anat": [["sub_id"]],
         "data": [["sub_id", "sequence", "task"]],
+        "data_phase": [["sub_id", "sequence", "task"]],
         "noise_std_map": [["sub_id", "sequence"]],
         "mask": [["sub_id", "sequence", "task"]],
     }

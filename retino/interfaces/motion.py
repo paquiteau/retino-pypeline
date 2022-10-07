@@ -72,7 +72,7 @@ class MagPhase2RealImag(SimpleInterface):
     def _run_interface(self, runtime):
 
         mag_nii = nib.load(self.inputs.mag_file)
-        pha_nii = nib.load(self.inputs.pha_file)
+        pha_nii = nib.load(self.inputs.phase_file)
 
         mag_data = mag_nii.get_fdata(dtype=np.float32)
         pha_data = pha_nii.get_fdata(dtype=np.float32)
@@ -85,7 +85,7 @@ class MagPhase2RealImag(SimpleInterface):
         real_data = mag_data * np.cos(pha_data)
         imag_data = mag_data * np.sin(pha_data)
 
-        basename = os.path.bsename(self.inputs.mag_file).split(".")[0]
+        basename = os.path.basename(self.inputs.mag_file).split(".")[0]
 
         real_nii = nib.Nifti1Image(real_data, mag_nii.affine)
         imag_nii = nib.Nifti1Image(imag_data, mag_nii.affine)
