@@ -38,13 +38,14 @@ def _tplt_node(sequence, cached_realignment):
     template = {
         "anat": "sub_%02i/anat/*_T1.nii",
         "data": "sub_%02i/func/*%s_%sTask.nii",
-        "noise": "sub_%02i/preproc_extra/*%s-0v_std.nii",
+        "data_phase": "sub_%02i/func/*%s_%sTask_phase.nii",
+        "noise_std_map": "sub_%02i/preproc_extra/*%s-0v_std.nii",
         "mask": "sub_%02i/preproc_extra/*%s_%sTask_mask.nii",
     }
     file_template_args = {
         "anat": [["sub_id"]],
         "data": [["sub_id", "sequence", "task"]],
-        "noise": [["sub_id", "sequence"]],
+        "noise_std_map": [["sub_id", "sequence"]],
         "mask": [["sub_id", "sequence", "task"]],
     }
 
@@ -61,7 +62,7 @@ def _tplt_node(sequence, cached_realignment):
 class PreprocessingWorkflowManager(WorkflowManager):
     """Manager for preprocessing workflow."""
 
-    input_fields = ["sub_id", "sequence", "denoise_config", "task"]
+    input_fields = ["sub_id", "sequence", "denoise_str", "task"]
 
     def _build_files(self, wf):
         """
@@ -83,7 +84,15 @@ class PreprocessingWorkflowManager(WorkflowManager):
         tplt_node.inputs.cached_realignment = False
         files = file_task(
             infields=templates_args,
-            outfields=["data", "anat", "noise", "mask", "motion", "data_opposite"],
+            outfields=[
+                "data",
+                "data_phase",
+                "anat",
+                "noise_std_map",
+                "mask",
+                "motion",
+                "data_opposite",
+            ],
             base_data_dir=self.base_data_dir,
         )
         input_node = wf.get_node("input")
@@ -182,7 +191,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         self,
         wf,
         task=None,
-        denoise_config=None,
+        denoise_str=None,
         sub_id=None,
         sequence=None,
         multi_proc=False,
@@ -194,12 +203,12 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         # get build code back:
         bc = wf.name.split("_")[1]
         if bc in ["v", "r"]:
-            denoise_config = None
+            denoise_str = None
 
         return super().run(
             wf,
             task=task,
-            denoise_config=denoise_config,
+            denoise_str=denoise_str,
             sub_id=sub_id,
             sequence=sequence,
             multi_proc=multi_proc,
