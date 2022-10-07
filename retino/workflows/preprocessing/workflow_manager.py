@@ -105,15 +105,14 @@ class PreprocessingWorkflowManager(WorkflowManager):
             ],
             base_data_dir=self.base_data_dir,
         )
-        input_node = wf.get_node("input")
-        wf = add2wf_dwim(wf, input_node, tplt_node, "sequence")
+        wf = add2wf_dwim(wf, INPUT, tplt_node, "sequence")
         wf = add2wf_dwim(
             wf,
             tplt_node,
             files,
             ["field_template", "template_args"],
         )
-        wf = add2wf_dwim(wf, input_node, files, templates_args)
+        wf = add2wf_dwim(wf, INPUT, files, templates_args)
         return wf
 
 
@@ -143,56 +142,57 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         -------
         wf : a nipype workflow ready to be run.
         """
-        if build_code in ["v", "R"]:
-            # cached realignment or nothing
-            nxt = ("selectfiles", "data")
-        elif build_code == "r":
-            # realignment
-            wf = add_realign(wf, "realign", "selectfiles", "data")
+        if len(build_code) == 2:
+            b1, b2 = build_code
+        else:
+            b1, b2 = build_code, " "
 
-            nxt = ("realign", "realigned_files")
-        elif build_code == "rd":
-            # realignment, denoising
-            wf = add_realign(wf, "realign", "selectfiles", "data")
-            wf = add_denoise_mag(wf, "denoise", "realign", "realigned_files")
-            nxt = ("denoise", "denoised_file")
-        elif build_code == "Rd":
-            # cached realignement, denoising
-            t = wf.get_node("template_node")
-            t.inputs.cached_realignment = True
-            wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
-            nxt = ("denoise", "denoised_file")
-        elif build_code == "dr":
+        if b1 == "v":
+            # cached realignment or nothing
+            nxt = (FILES, "data")
+        elif b1 == "r":
+            add_realign(wf, REALIGN, FILES, "data")
+            nxt = (REALIGN, "realigned_files")
+            if b2 == "d":
+                add_denoise_mag(wf, DENOISE, *nxt)
+                nxt = (DENOISE, "denoised_file")
+            elif b2 == "D":
+                add_denoise_cpx(wf, DENOISE, after_realign=True)
+                nxt = (DENOISE, "denoised_file")
+        elif b1 == "d":
             # denoising, realigment
-            wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
-            wf = add_realign(wf, "realign", "denoise", "denoised_file")
-            nxt = ("realign", "realigned_files")
-        elif build_code == "d":
-            # denoising only
-            wf = add_denoise_mag(wf, "denoise", "selectfiles", "data")
-            nxt = ("denoise", "denoised_file")
+            add_denoise_mag(wf, DENOISE, FILES, "data")
+            nxt = (DENOISE, "denoised_file")
+            if b2 == "r":
+                add_realign(wf, REALIGN, *nxt)
+                nxt = (REALIGN, "realigned_files")
+        elif b1 == "D":
+            # complex denoising and realignment
+            add_denoise_cpx(wf, DENOISE, after_realign=False)
+            nxt = (DENOISE, "denoised_file")
+            if b2 == "r":
+                add_realign(wf, REALIGN, *nxt)
+            nxt = (REALIGN, "realigned_file")
         else:
             raise ValueError("Unsupported build code.")
 
-        wf = add_topup(wf, "topup", nxt[0], nxt[1])
-        wf = add_coreg(wf, "coreg", "cond_topup", "out")
+        add_topup(wf, TOPUP, nxt[0], nxt[1])
+        add_coreg(wf, COREG, TOPUP, "out")
         to_sink = [
-            ("coreg", "out.coreg_func", "coreg_func"),
-            ("coreg", "out.coreg_anat", "coreg_anat"),
+            (COREG, "out.coreg_func", "coreg_func"),
+            (COREG, "out.coreg_anat", "coreg_anat"),
         ]
 
         if "r" in build_code:
-            to_sink.append(("realign", "realignment_parameters", "motionparams"))
-        elif "R" in build_code:
-            to_sink.append(("selectfiles", "motion", "motionparams"))
+            to_sink.append((REALIGN, "realignment_parameters", "motionparams"))
         else:
             print("no realignment parameters available")
         if "d" in build_code:
-            to_sink.append(("denoise", "noise_std_map", "noise_map"))
+            to_sink.append((DENOISE, "noise_std_map", "noise_map"))
 
         wf = add2sinker(wf, to_sink, folder=f"preproc.{build_code}")
         # extra configuration for  sinker
-        sinker = wf.get_node("sinker")
+        sinker = wf.get_node(SINKER)
 
         sinker.inputs.regexp_substitutions = _REGEX_SINKER
         return wf
@@ -287,8 +287,8 @@ class NoisePreprocManager(PreprocessingWorkflowManager):
         mask = mask_node(name="mask")
         noise_std = noise_std_node(name="noise_std")
 
-        files = wf.get_node("selectfiles")
-        sinker = wf.get_node("sinker")
+        files = wf.get_node(FILES)
+        sinker = wf.get_node(SINKER)
 
         sinker.inputs.regexp_substitutions = _REGEX_SINKER
 
