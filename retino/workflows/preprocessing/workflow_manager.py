@@ -14,6 +14,7 @@ from ..tools import func2node
 from .builder import (
     add_coreg,
     add_denoise_mag,
+    add_denoise_cpx,
     add_realign,
     add_topup,
 )
@@ -28,6 +29,15 @@ _REGEX_SINKER = [
     (r"rrsub", "sub"),
     (r"rpsub", "sub"),
 ]
+
+DENOISE = "denoise"
+REALIGN = "realign"
+TOPUP = "topup"
+COREG = "coreg"
+FILES = "selectfiles"
+SINKER = "sink"
+INPUT = "input"
+TEMPLATE = "template_node"
 
 
 def _tplt_node(sequence, cached_realignment):
