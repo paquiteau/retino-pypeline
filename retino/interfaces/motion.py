@@ -1,9 +1,10 @@
+"""Motion Recalibration Interfaces."""
 import os
 import numpy as np
 
 import nibabel as nib
 from nipype.interfaces.base import (
-    BaseInterface,
+    SimpleInterface,
     BaseInterfaceInputSpec,
     File,
     TraitedSpec,
@@ -12,20 +13,24 @@ from nipype.interfaces.base import (
 from retino.tools.motion import apply_motion
 
 
-class MotionRealImagInputSpec(BaseInterfaceInputSpec):
-    mag_file = File(exists=True, desc="input sequence magnitude")
-    phase_file = File(exists=True, desc="input sequence phase")
+class ApplyMotionInputSpec(BaseInterfaceInputSpec):
+    """InputSpec for ApplyMotion."""
+
+    in_file = File(exists=True, desc="input sequence magnitude")
     motion_file = File(exists=True, desc="motion csv.")
 
 
-class MotionRealImagOutputSpec(TraitedSpec):
-    out_real = File(desc="Real part of Sequence which have been motion corrected")
-    out_imag = File(desc="Imaginary part of Sequence which have been motion corrected")
+class ApplyMotionOutputSpec(TraitedSpec):
+    """OutputSpec for ApplyMotion."""
+
+    out_file = File(desc="motion corrected file")
 
 
-class MotionRealImag(BaseInterface):
-    input_spec = MotionRealImagInputSpec
-    output_spec = MotionRealImagOutputSpec
+class ApplyMotion(SimpleInterface):
+    """Apply Motion Parameters to data."""
+
+    input_spec = ApplyMotionInputSpec
+    output_spec = ApplyMotionOutputSpec
 
     def _run_interface(self, runtime):
 
