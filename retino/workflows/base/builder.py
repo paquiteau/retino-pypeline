@@ -29,7 +29,18 @@ def add2wf(wf, after_node, edge_out, node, edge_in):
 
 def add2wf_dwim(wf, node_out, node_in, edges):
     """Connect two node with same edge label."""
+    if isinstance(node_out, str):
+        node_out = wf.get_node(node_out)
+    if isinstance(node_in, str):
+        node_in = wf.get_node(node_in)
+
     if not isinstance(edges, list):
         edges = [edges]
-    wf.connect([(node_out, node_in, [(edge, edge) for edge in edges])])
+    for edge in edges:
+        if isinstance(edge, str):
+            wf.connect(node_out, edge, node_in, edge)
+        elif isinstance(edge, tuple) and len(edge) == 2
+            wf.connect(node_out, edge[0], node_in, edge[1])
+        else:
+            raise ValueError(f"Unsupported edge config {edge}")
     return wf
