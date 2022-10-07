@@ -265,18 +265,6 @@ def cond_denoise_task(name):
     )
 
 
-def denoise_node(name):
-    """Noise Node.
-
-    Input: in_file_mag, in_file_real, in_file_imag, mask, denoise_str
-    Output: denoised_file
-    """
-    d_node = Node(PatchDenoise(), name=name)
-    d_node.n_procs = _get_num_thread()
-
-    return d_node
-
-
 def mask_node(name):
     """Mask Node."""
     return Node(
