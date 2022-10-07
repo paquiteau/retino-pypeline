@@ -190,7 +190,8 @@ class PatchDenoise(SimpleInterface):
             denoise_func = DENOISER_MAP[d_par.method]
         except KeyError:
             raise ValueError(
-                f"unknown denoising denoise_method '{self.inputs.denoise_method}', available are {list(DENOISER_MAP.keys())}"
+                f"unknown denoising denoise_method '{self.inputs.denoise_method}', "
+                f"available are {list(DENOISER_MAP.keys())}"
             )
 
         if isdefined(self.inputs.extra_kwargs) and self.inputs.extra_kwargs:
@@ -287,7 +288,11 @@ class NORDICInputSpec(MatlabInputSpec):
         0,
         1,
         2,
-        desc="0: default, 1: NORDIC gfactor with MP estimation 2: MP without gfactor correction",
+        desc=(
+            "0: default,"
+            " 1: NORDIC gfactor with MP estimation"
+            " 2: MP without gfactor correction",
+        ),
     )
     arg_nordic = traits.Enum(1, 0, desc="1 Default")
     arg_kernel_size_gfactor = traits.Tuple(
@@ -297,11 +302,13 @@ class NORDICInputSpec(MatlabInputSpec):
         desc="default: ratio 11:1 between spatial and temporal voxels",
     )
 
-    arg_NORDIC_patch_overlap = traits.Int(
-        desc="overlap is used to determined step_size = floor(patch_size/overlap)"
+    arg_NORDIC_patch_overlap = traits.Union(
+        traits.Int(),
+        traits.Float(),
+        desc="overlap is used to determined step_size = floor(patch_size/overlap)",
     )
     arg_save_add_info = traits.Bool(
-        desc=" If 1, then an additonal matlab file is being saved with degress removed etc."
+        desc=" If 1, then an extra file is being saved with degress removed etc."
     )
     arg_make_complex_nii = traits.Bool(
         "If defined, the phase is being saved in a similar format as the input phase"
@@ -310,7 +317,10 @@ class NORDICInputSpec(MatlabInputSpec):
         0,
         1,
         2,
-        desc="1 save the relative gfactor, 2 saves the gfactor and does not compute the nordic processing",
+        desc=(
+            "1 save the relative gfactor,"
+            " 2 saves the gfactor and does not compute the nordic processing",
+        ),
     )
 
 
