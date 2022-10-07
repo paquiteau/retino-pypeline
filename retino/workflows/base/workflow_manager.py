@@ -16,6 +16,11 @@ from .nodes import input_task, sinker_task
 from ..tools import _getsubid
 
 
+FILES = "selectfile"
+INPUT = "input"
+SINKER = "sinker"
+
+
 class WorkflowManager:
     """Base Workflow Managers.
 
