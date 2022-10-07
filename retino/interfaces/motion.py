@@ -99,3 +99,51 @@ class MagPhase2RealImag(SimpleInterface):
         self._results["imag_file"] = os.path.abspath(imag_fname)
 
         return runtime
+
+
+class RealImag2MagPhaseInputSpec(BaseInterfaceInputSpec):
+    """OutputSpect for MagPhase2RealImag."""
+
+    real_file = File()
+    imag_file = File()
+
+
+class RealImag2MagPhaseOutputSpec(TraitedSpec):
+    """InputSpec for RealImag2MagPhase."""
+
+    mag_file = File()
+    phase_file = File()
+
+
+class RealImag2MagPhase(SimpleInterface):
+    """Get Real and imaginary part of data from magnitude and phase files."""
+
+    input_spec = RealImag2MagPhaseInputSpec
+    output_spec = RealImag2MagPhaseOutputSpec
+
+    def _run_interface(self, runtime):
+
+        real_nii = nib.load(self.inputs.real_file)
+        imag_nii = nib.load(self.inputs.imag_file)
+
+        real_data = real_nii.get_fdata(dtype=np.float32)
+        imag_data = imag_nii.get_fdata(dtype=np.float32)
+
+        mag_data = np.sqrt(real_data**2 + imag_data**2)
+        phase_data = np.atan2(imag_data, real_data)
+        basename = os.path.bsename(self.inputs.real_file).split(".")[0]
+        basename.replace("real", "")
+        basename.replace("imag", "")
+
+        mag_nii = nib.Nifti1Image(mag_data, real_nii.affine)
+        phase_nii = nib.Nifti1Image(phase_data, real_nii.affine)
+        mag_fname = basename + "_mag.nii"
+        phase_fname = basename + "_phase.nii"
+
+        mag_nii.to_filename(mag_fname)
+        phase_nii.to_filename(phase_fname)
+
+        self._results["mag_file"] = os.path.abspath(mag_fname)
+        self._results["phase_file"] = os.path.abspath(phase_fname)
+
+        return runtime
