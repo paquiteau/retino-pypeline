@@ -1,10 +1,8 @@
 """Preprocessing Workflows."""
 
-from .workflow_manager import (
-    RealignmentPreprocessingManager,
-    RetinotopyPreprocessingManager,
-    NoisePreprocManager,
-)
+from .preprocessing import RetinotopyPreprocessingManager
+from .extras import NoisePreprocManager, RealignmentPreprocessingManager
+
 
 __all__ = [
     "RealignmentPreprocessingManager",
