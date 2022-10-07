@@ -2,11 +2,11 @@
 from retino.workflows.preprocessing.nodes import (
     conditional_topup_task,
     coregistration_task,
-    denoise_node,
+    cond_denoise_task,
     realign_task,
 )
 
-from ..base.builder import add2wf
+from ..base.builder import add2wf, add2wf_dwim
 
 
 def add_realign(wf, name, after_node, edge):
@@ -17,13 +17,21 @@ def add_realign(wf, name, after_node, edge):
 
 def add_denoise_mag(wf, name, after_node, edge):
     """Add denoising step for magnitude input."""
-    denoise = denoise_node(name)
-    input_node = wf.get_node("input")
-    selectfiles = wf.get_node("selectfiles")
-    wf.connect(selectfiles, "noise", denoise, "noise_std_map")
-    wf.connect(selectfiles, "mask", denoise, "mask")
-    wf.connect(input_node, "denoise_config", denoise, "denoise_str")
-    return add2wf(wf, after_node, edge, denoise, "in_mag")
+    denoise = cond_denoise_task(name)
+    add2wf_dwim(wf, "selectfiles", denoise, ["noise_std_map", "mask"])
+    add2wf_dwim(wf, "input_node", denoise, "denoise_str")
+    return add2wf(wf, after_node, edge, denoise, "data")
+
+
+def add_denoise_cpx_after_r(wf, name, after_node, edge):
+    """Add denoising step for magnitude input."""
+    denoise = cond_denoise_task(name)
+    add2wf_dwim(wf, "selectfiles", denoise, ["noise_std_map", "mask"])
+    add2wf_dwim(wf, "input_node", denoise, "denoise_str")
+    add2wf_dwim(wf, "selectfiles", denoise, "data")
+    add2wf_dwim(wf, "selectfiles", denoise, "data_phase")
+    add2wf_dwim(wf, "realign", denoise, ("realignment_parameters", "motion"))
+    return wf
 
 
 def add_topup(wf, name, after_node, edge):
