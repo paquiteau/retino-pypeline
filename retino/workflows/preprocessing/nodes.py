@@ -14,6 +14,11 @@ from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
 from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
 
+from retino.interfaces.motion import (
+    ApplyMotion,
+    MagPhase2RealImag,
+)
+
 
 def realign_task(matlab_cmd=None, name="realign"):
     """Create a realign node."""
@@ -178,6 +183,86 @@ def coregistration_task(name, working_dir=None, matlab_cmd=None):
         ]
     )
     return coreg_wf
+
+
+def _apply_cplx_realignment(data, data_phase, motion=None):
+
+    mp2ri = MagPhase2RealImag()
+    mp2ri.inputs.mag_file = data
+    mp2ri.inputs.phase_file = data_phase
+    results = mp2ri.run()
+    real_file = results.outputs.real_file
+    imag_file = results.outputs.imag_file
+    if motion is not None:
+        applymotion = ApplyMotion()
+        applymotion.inputs.in_file = real_file
+        applymotion.inputs.motion_file = motion
+        real_file = applymotion.run().outputs.out_file
+
+        applymotion.inputs.in_file = imag_file
+        applymotion.inputs.motion_file = motion
+        imag_file = applymotion.run().outputs.out_file
+
+    return real_file, imag_file
+
+
+def cond_denoise_task(name):
+    """Smart denoising node.
+
+    This node will:
+    1) select the proper interface for denoising
+    2) use complex valued data if available
+    3) apply motion correction to complex data if available.
+
+    """
+
+    def cond_node(denoise_str, mask, noise_std_map, data, data_phase=None, motion=None):
+        from retino.interfaces.denoise import PatchDenoise, NORDICDenoiser
+        from retino.interfaces.motion import RealImag2MagPhase
+        from . import _apply_cplx_realignment
+
+        # denoise string is defined as method-name_patch-size_patch-overlap
+        code = denoise_str.split("_")
+        if code[0] == "nordic-mat":
+            denoiser = NORDICDenoiser()
+            if data_phase is not None and motion is not None:
+                real_file, imag_file = _apply_cplx_realignment(data, data_phase, motion)
+                ri2mp = RealImag2MagPhase()
+                ri2mp.inputs.real_file = real_file
+                ri2mp.inputs.imag_file = imag_file
+                results = ri2mp.run().outputs
+
+                denoiser.inputs.file_mag = results.mag_file
+                denoiser.inputs.file_pha = results.pha_file
+            elif data_phase is not None:
+                denoiser.inputs.file_mag = data
+                denoiser.inputs.file_pha = data_phase
+            else:
+                denoiser.inputs.file_mag = data
+            denoiser.inputs.arg_kernel_size_PCA = code[1]
+            denoiser.inputs.arg_NORDIC_patch_overlap = code[2]
+
+            results = denoiser.run()
+            return results.outputs.file_out_mag
+
+        denoiser = PatchDenoise()
+        if data_phase is not None:
+            real_file, imag_file = _apply_cplx_realignment(data, data_phase, motion)
+            denoiser.inputs.in_real = real_file
+            denoiser.inputs.in_imag = imag_file
+        else:
+            denoiser.inputs.in_mag = data
+        denoiser.inputs.denoise_str = denoise_str
+        denoiser.inputs.mask = mask
+        denoiser.inputs.noise_std_map = noise_std_map
+        results = denoiser.run()
+        return results.outputs.denoised_file
+
+    return func2node(
+        cond_node,
+        output_names=["denoised_file"],
+        name=name,
+    )
 
 
 def denoise_node(name):
