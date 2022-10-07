@@ -48,3 +48,54 @@ class ApplyMotion(SimpleInterface):
         self._results["out_file"] = filename
         return runtime
 
+
+class MagPhase2RealImagInputSpec(BaseInterfaceInputSpec):
+    """InputSpec for MagPhase2RealImag."""
+
+    mag_file = File(exists=True)
+    phase_file = File(exists=True)
+
+
+class MagPhase2RealImagOutputSpec(TraitedSpec):
+    """OutputSpect for MagPhase2RealImag."""
+
+    real_file = File()
+    imag_file = File()
+
+
+class MagPhase2RealImag(SimpleInterface):
+    """Get Real and imaginary part of data from magnitude and phase files."""
+
+    input_spec = MagPhase2RealImagInputSpec
+    output_spec = MagPhase2RealImagOutputSpec
+
+    def _run_interface(self, runtime):
+
+        mag_nii = nib.load(self.inputs.mag_file)
+        pha_nii = nib.load(self.inputs.pha_file)
+
+        mag_data = mag_nii.get_fdata(dtype=np.float32)
+        pha_data = pha_nii.get_fdata(dtype=np.float32)
+
+        pha_min = np.min(pha_data)
+        pha_max = np.max(pha_data)
+        # normalizing to -pi, pi
+        pha_data = (2 * np.pi * (pha_data - pha_min) / (pha_max - pha_min)) + np.pi
+
+        real_data = mag_data * np.cos(pha_data)
+        imag_data = mag_data * np.sin(pha_data)
+
+        basename = os.path.bsename(self.inputs.mag_file).split(".")[0]
+
+        real_nii = nib.Nifti1Image(real_data, mag_nii.affine)
+        imag_nii = nib.Nifti1Image(imag_data, mag_nii.affine)
+        real_fname = basename + "_real.nii"
+        imag_fname = basename + "_imag.nii"
+
+        real_nii.to_filename(real_fname)
+        imag_nii.to_filename(imag_fname)
+
+        self._results["real_file"] = os.path.abspath(real_fname)
+        self._results["imag_file"] = os.path.abspath(imag_fname)
+
+        return runtime
