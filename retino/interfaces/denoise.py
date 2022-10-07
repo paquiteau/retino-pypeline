@@ -46,7 +46,6 @@ class DenoiseParameters:
     patch_shape: int = 11
     patch_overlap: int = 0
     recombination: str = "weighted"  # "center" is also available
-    use_phase: bool = False  # denoise using complex images.
     mask_threshold: int = 25
 
     @property
@@ -54,8 +53,6 @@ class DenoiseParameters:
         if self.method:
             name = self.method
             name += f"_{self.patch_shape}_{self.patch_overlap}_{self.recombination[0]}"
-            if self.use_phase:
-                name += "_p"
         else:
             name = "noisy"
         return name
@@ -63,8 +60,6 @@ class DenoiseParameters:
     @property
     def pretty_par(self):
         name = f"{self.patch_shape}_{self.patch_overlap}{self.recombination[0]}"
-        if self.use_phase:
-            name += "_p"
         return name
 
     @classmethod
@@ -76,7 +71,6 @@ class DenoiseParameters:
                 patch_shape=None,
                 patch_overlap=None,
                 recombination=None,
-                use_phase=False,
                 mask_threshold=None,
             )
         else:
@@ -91,9 +85,6 @@ class DenoiseParameters:
             if conf:
                 c = conf.pop(0)
                 d.recombination = "weighted" if c == "w" else "center"
-            if conf:
-                c = conf.pop(0)
-                d.use_phase = c == "p"
             if conf:
                 d.mask_threshold = conf.pop(0)
             return d
