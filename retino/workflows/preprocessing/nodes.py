@@ -10,7 +10,7 @@ from nipype import Function, IdentityInterface, Node, Workflow
 
 from retino.workflows.tools import func2node, _get_matlab_cmd, _get_num_thread
 
-from retino.interfaces.denoise import NoiseStdMap, PatchDenoise
+from retino.interfaces.denoise import NoiseStdMap
 from retino.interfaces.tools import Mask
 from retino.interfaces.topup import myTOPUP
 
@@ -258,11 +258,13 @@ def cond_denoise_task(name):
         results = denoiser.run()
         return results.outputs.denoised_file, results.outputs.noise_std_map
 
-    return func2node(
+    node = func2node(
         cond_node,
         output_names=["denoised_file", "noise_std_map"],
         name=name,
     )
+    node.n_procs = _get_num_thread()
+    return node
 
 
 def mask_node(name):
