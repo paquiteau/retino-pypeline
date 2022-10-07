@@ -40,18 +40,11 @@ class ApplyMotion(SimpleInterface):
         corrected_images = np.zeros_like(images)
 
         for i in range(images.shape[-1]):
-            corrected_images[..., i] = apply_motion(
-                images[..., i], motions[i], reverse=True
-            )
+            corrected_images[..., i] = apply_motion(images[..., i], motions[i])
 
+        filename = os.path.abspath("r" + os.path.basename(self.inputs.in_file))
         corrected_nii = nib.Nifti1Image(corrected_images, affine=image_nii.affine)
-        corrected_nii.to_filename(
-            os.path.abspath("r" + os.path.basename(self.inputs.in_file))
-        )
-
+        corrected_nii.to_filename(filename)
+        self._results["out_file"] = filename
         return runtime
 
-    def _list_outputs(self):
-        outputs = self._outputs().get()
-        outputs["out"] = os.path.abspath("r" + os.path.basename(self.inputs.in_file))
-        return outputs
