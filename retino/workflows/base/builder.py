@@ -27,12 +27,21 @@ def add2wf(wf, after_node, edge_out, node, edge_in):
     return wf
 
 
+def get_node(wf, node):
+    """Get node from workflow or raise error."""
+    node_obj = wf.get_node(node)
+    if node_obj is None:
+        raise ValueError(f"Node {node} not found.")
+    return node_obj
+
+
 def add2wf_dwim(wf, node_out, node_in, edges):
     """Connect two node with same edge label."""
-    if isinstance(node_out, str):
-        node_out = wf.get_node(node_out)
     if isinstance(node_in, str):
-        node_in = wf.get_node(node_in)
+        node_in = get_node(wf, node_in)
+
+    if isinstance(node_out, str):
+        node_out = get_node(wf, node_out)
 
     if not isinstance(edges, list):
         edges = [edges]
