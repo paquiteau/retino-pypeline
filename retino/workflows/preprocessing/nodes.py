@@ -245,7 +245,7 @@ def cond_denoise_task(name):
             else:
                 denoiser.inputs.arg_NORDIC_patch_overlap = 1
             results = denoiser.run()
-            return results.outputs.file_out_mag
+            return results.outputs.file_out_mag, noise_std_map
 
         denoiser = PatchDenoise()
         if data_phase is not None:
