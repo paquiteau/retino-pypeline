@@ -353,28 +353,33 @@ class NORDICDenoiser(MatlabCommand):
     def _nordic_script(self):
 
         arg_name = [name[4:] for name in self.inputs.__dict__ if "arg_" in name]
-        mstruct = "ARG.mp = 0;\n"  # dummy default initialisation.
+        # fill the argument MATLAB Struct.
+        mstruct = f"ARG.DIROUT = {Path.cwd()};\n"
         for name in arg_name:
             val = getattr(self.inputs, "arg_" + name)
-            if isdefined(val):
-                mstruct += f"ARG.{name} = {val};\n"
+            if not isdefined(val):
+                continue
+            if name == "kernel_size_PCA":
+                val = [val, val, val]
+            mstruct += f"ARG.{name} = {val};\n"
+
+        file_mag = Path(self.inputs.file_mag)
 
         file_phase = []
         if isdefined(self.inputs.file_phase):
-            file_phase = self.inputs.file_phase
+            file_phase = Path(self.inputs.file_phase)
         else:
             mstruct += "ARG.magnitude_only = 1;\n"
 
-        self._file_out = os.path.abspath(
-            self.inputs.file_mag.split(".")[0] + "_NORDIC.nii"
-        )
+        file_out_base = file_mag.stem + "_NORDIC"
+        self._file_out = Path(file_out_base + ".nii").resolve()
 
         if isdefined(self.inputs.nordic_path):
             nordic_path = self.inputs.nordic_path
         else:
             nordic_path = Path(__file__).parents[2] / "libs/NORDIC_Raw"
         script = (
-            "{mstruct}\n"
+            "\n{mstruct}\n"
             "addpath('{nordic_path}');\n"
             "disp(ARG);\n"
             "NIFTI_NORDIC('{file_mag}', {file_phase}, '{file_out}', ARG);"
@@ -382,7 +387,7 @@ class NORDICDenoiser(MatlabCommand):
             mstruct=mstruct,
             file_mag=self.inputs.file_mag,
             file_phase=file_phase,
-            file_out=self._file_out,
+            file_out=file_out_base,
             nordic_path=nordic_path,
         )
         print(script)
