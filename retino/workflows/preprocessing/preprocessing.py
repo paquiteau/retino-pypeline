@@ -226,7 +226,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
             nxt = (DENOISE, "denoised_file")
             if b2 == "r":
                 add_realign(wf, REALIGN, *nxt)
-            nxt = (REALIGN, "realigned_files")
+                nxt = (REALIGN, "realigned_files")
         else:
             raise ValueError("Unsupported build code.")
 

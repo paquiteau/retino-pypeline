@@ -233,10 +233,10 @@ def cond_denoise_task(name):
                 results = ri2mp.run().outputs
 
                 denoiser.inputs.file_mag = results.mag_file
-                denoiser.inputs.file_pha = results.pha_file
+                denoiser.inputs.file_phase = results.pha_file
             elif data_phase is not None:
                 denoiser.inputs.file_mag = data
-                denoiser.inputs.file_pha = data_phase
+                denoiser.inputs.file_phase = data_phase
             else:
                 denoiser.inputs.file_mag = data
             denoiser.inputs.arg_kernel_size_PCA = int(code[1])
