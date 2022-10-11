@@ -240,8 +240,10 @@ def cond_denoise_task(name):
             else:
                 denoiser.inputs.file_mag = data
             denoiser.inputs.arg_kernel_size_PCA = int(code[1])
-            denoiser.inputs.arg_NORDIC_patch_overlap = int(code[1]) / int(code[2])
-
+            if int(code[2]) > 0:
+                denoiser.inputs.arg_NORDIC_patch_overlap = int(code[1]) / int(code[2])
+            else:
+                denoiser.inputs.arg_NORDIC_patch_overlap = 1
             results = denoiser.run()
             return results.outputs.file_out_mag
 
