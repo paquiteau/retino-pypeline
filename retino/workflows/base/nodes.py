@@ -1,4 +1,4 @@
-"""Base Nodes. """
+"""Base Nodes."""
 
 from nipype import Node, IdentityInterface
 from nipype.interfaces import io as nio
