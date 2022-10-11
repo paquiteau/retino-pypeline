@@ -11,12 +11,13 @@ from retino.workflows.preprocessing import (
 
 DATA_DIR = "/neurospin/optimed/pierre-antoine/dataset/data"
 
-TMP_DIR = "/volatile/pierre-antoine/data/tmp-optimed"
+TMP_DIR = "/neurospin/optimed/pierre-antoine/dataset/tmp"
 TASKS = ["Clockwise", "AntiClockwise"]
 SEQUENCES = ["EPI3D"]
 parser = argparse.ArgumentParser(
     prog="benchmark script for patch denoising method."
-    "this script execute a standard retinotopy pipeline with denoising for a set of subject, but with a single configuration of denoising"
+    "this script execute a standard retinotopy pipeline with denoising for a set "
+    "of subject, but with a single configuration of denoising"
 )
 
 parser.add_argument(
@@ -36,7 +37,7 @@ parser.add_argument(
     default=SEQUENCES,
 )
 parser.add_argument(
-    "--denoise-config",
+    "--denoise-str",
     type=str,
     nargs="+",
     help="denoiser config string",
@@ -94,5 +95,5 @@ if __name__ == "__main__":
             sub_id=ns.sub,
             task=ns.task,
             sequence=ns.sequence,
-            denoise_config=ns.denoise_config,
+            denoise_str=ns.denoise_str,
         )

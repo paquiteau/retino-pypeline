@@ -2,6 +2,6 @@
 pyenv local retino
 
 python run_preprocessing.py \
-  --denoise-config optimal-fro_11_5 \
-  --build-code v r rd dr d \
+  --denoise-str nordic-mat_11_5 \
+  --build-code rd dr d D Dr rD\
   --sub 6 \
