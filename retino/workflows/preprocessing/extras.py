@@ -1,8 +1,14 @@
-"""Extra workflows for preprocessing"""
+"""Extra workflows for preprocessing."""
+from ..base.nodes import selectfile_task
 from .nodes import mask_node, noise_std_node
-from .preprocessing import PreprocessingWorkflowManager, _REGEX_SINKER
-from .preprocessing import add_realign, add2sinker
-from .preprocessing import FILES, SINKER
+from .preprocessing import (
+    _REGEX_SINKER,
+    FILES,
+    SINKER,
+    PreprocessingWorkflowManager,
+    add2sinker,
+    add_realign,
+)
 
 
 class RealignmentPreprocessingManager(PreprocessingWorkflowManager):
