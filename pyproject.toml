@@ -26,7 +26,10 @@ dev = ["black", "isort"]
 homepage = "https://github.com/paquiteau/retino-pypeline"
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools","setuptools_scm", "wheel"]
+
+[tool.setuptools.package-data]
+retino = ["libs/NORDIC_Raw/*.m"]
 
 # Formatting using black.
 [tool.black]
