@@ -72,7 +72,7 @@ def get_parser():
     return parser
 
 
-def noise_prepocessing(ns):
+def noise_preprocessing(ns):
 
     from retino.workflows.preprocessing import NoisePreprocManager
 
