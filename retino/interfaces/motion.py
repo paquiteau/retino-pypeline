@@ -130,7 +130,7 @@ class RealImag2MagPhase(SimpleInterface):
         imag_data = imag_nii.get_fdata(dtype=np.float32)
 
         mag_data = np.sqrt(real_data**2 + imag_data**2)
-        phase_data = np.atan2(imag_data, real_data)
+        phase_data = np.arctan2(imag_data, real_data)
         basename = os.path.bsename(self.inputs.real_file).split(".")[0]
         basename.replace("real", "")
         basename.replace("imag", "")
