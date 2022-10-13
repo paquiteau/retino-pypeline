@@ -367,7 +367,7 @@ class NORDICDenoiser(MatlabCommand):
 
         file_phase = []
         if isdefined(self.inputs.file_phase):
-            file_phase = Path(self.inputs.file_phase)
+            file_phase = f"'{Path(self.inputs.file_phase).resolve()}'"
         else:
             mstruct += "ARG.magnitude_only = 1;\n"
 
@@ -377,7 +377,7 @@ class NORDICDenoiser(MatlabCommand):
         if isdefined(self.inputs.nordic_path):
             nordic_path = self.inputs.nordic_path
         else:
-            nordic_path = Path(__file__).parents[2] / "libs/NORDIC_Raw"
+            nordic_path = Path(__file__).parents[1] / "libs/NORDIC_Raw"
         script = (
             "\n{mstruct}\n"
             "addpath('{nordic_path}');\n"

@@ -1,3 +1,6 @@
 [submodule "libs/NORDIC_Raw"]
 	path = libs/NORDIC_Raw
 	url = git@github.com:SteenMoeller/NORDIC_Raw.git
+[submodule "retino/libs/NORDIC_Raw"]
+	path = retino/libs/NORDIC_Raw
+	url = https://github.com/steenmoeller/NORDIC_Raw

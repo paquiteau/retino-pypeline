@@ -1,13 +1,35 @@
-[tool.poetry]
+[project]
 name = "retino-pypeline"
-version = "0.0.0"
-description = "Simple fMRI pypeline manager, targeting retinotopy analysis."
-authors = ["Pierre-antoine Comby <pierre-antoine.comby@crans.org>"]
+version = "1.0"
+description = "Workflow manager for preprocessing and analysis of retinotopy paradigm."
+authors = [
+    {name = "Pierre-antoine Comby", email = "pierre-antoine.comby@crans.org"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["fMRI", "nipype", "pipeline"]
+
+dependencies = [
+"numpy",
+"scipy",
+"nipype",
+"nilearn",
+"nibabel",
+"tqdm",
+"scikit-image",
+]
+
+[project.optional-dependencies]
+dev = ["black", "isort"]
+
+[project.urls]
+homepage = "https://github.com/paquiteau/retino-pypeline"
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools","setuptools_scm", "wheel"]
 
-
+[tool.setuptools.package-data]
+retino = ["libs/NORDIC_Raw/*.m"]
 
 # Formatting using black.
 [tool.black]
