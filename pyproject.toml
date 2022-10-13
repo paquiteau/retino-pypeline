@@ -26,7 +26,7 @@ dev = ["black", "isort"]
 homepage = "https://github.com/paquiteau/retino-pypeline"
 
 [project.scripts]
-preprocessing = "retino.cli.preprocessing:main_cli"
+retino-prep = "retino.cli.preprocessing:main_cli"
 
 [build-system]
 requires = ["setuptools","setuptools_scm", "wheel"]
