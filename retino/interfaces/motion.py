@@ -131,7 +131,7 @@ class RealImag2MagPhase(SimpleInterface):
 
         mag_data = np.sqrt(real_data**2 + imag_data**2)
         phase_data = np.atan2(imag_data, real_data)
-        basename = os.path.bsename(self.inputs.real_file).split(".")[0]
+        basename = os.path.basename(self.inputs.real_file).split(".")[0]
         basename.replace("real", "")
         basename.replace("imag", "")
 
