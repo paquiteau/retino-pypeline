@@ -16,6 +16,7 @@ dependencies = [
 "nilearn",
 "nibabel",
 "tqdm",
+"nipy",
 "scikit-image",
 ]
 
