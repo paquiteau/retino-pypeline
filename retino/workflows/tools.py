@@ -5,17 +5,28 @@ import distutils.spawn
 import glob
 
 from nipype import Node, Function
+import nipype.interfaces.matlab as mlab
 
 
-def _get_matlab_cmd(matlab_cmd):
-    if matlab_cmd:
-        return matlab_cmd
-    if distutils.spawn.find_executable("matlab"):
-        return "matlab -nodesktop -nosplash"
+def _setup_matlab(node, matlab_cmd):
+
+    if not matlab_cmd:
+        if distutils.spawn.find_executable("matlab"):
+            matlab_cmd = "matlab -nodesktop -nosplash"
+        else:
+            print("no matlab command found, use MCR.")
+            mcr_path = glob.glob("/opt/matlabmcr-*/v*")[0]
+            matlab_cmd = f"/opt/spm12/run_spm12.sh {mcr_path} script"
+
+    if "matlabmcr" in matlab_cmd:
+        node.inputs.matlab_cmd = matlab_cmd
+        node.inputs.use_mcr = True
     else:
-        print("no matlab command found, use MCR.")
-        mcr_path = glob.glob("/opt/matlabmcr-*/v*")[0]
-        return f"/opt/spm12/run_spm12.sh {mcr_path} script"
+        node.interface.mlab = mlab.MatlabCommand(
+            matlab_cmd=matlab_cmd,
+            resource_monitor=False,
+            single_comp_thread=False,
+        )
 
 
 def _get_num_thread(n=None):

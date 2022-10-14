@@ -4,11 +4,10 @@ Some Nodes are implemented as Nipype workflow but don't worry about that.
 """
 
 import nipype.interfaces.fsl as fsl
-import nipype.interfaces.matlab as mlab
 import nipype.interfaces.spm as spm
 from nipype import Function, IdentityInterface, Node, Workflow
 
-from retino.workflows.tools import func2node, _get_matlab_cmd, _get_num_thread
+from retino.workflows.tools import func2node, _setup_matlab, _get_num_thread
 
 from retino.interfaces.denoise import NoiseStdMap
 from retino.interfaces.tools import Mask
@@ -22,21 +21,12 @@ from retino.interfaces.motion import (
 
 def realign_task(matlab_cmd=None, name="realign"):
     """Create a realign node."""
-    matlab_cmd = _get_matlab_cmd(matlab_cmd)
     realign = Node(spm.Realign(), name=name)
     realign.inputs.separation = 1.0
     realign.inputs.fwhm = 1.0
     realign.inputs.register_to_mean = False
-    if "matlabmcr" in matlab_cmd:
-        realign.inputs.matlab_cmd = matlab_cmd
-        realign.inputs.use_mcr = True
-    else:
-        realign.interface.mlab = mlab.MatlabCommand(
-            matlab_cmd=matlab_cmd,
-            resource_monitor=False,
-            single_comp_thread=False,
-        )
     realign.n_procs = 3
+    _setup_matlab(realign, matlab_cmd)
     return realign
 
 
@@ -158,7 +148,6 @@ def coregistration_task(name, working_dir=None, matlab_cmd=None):
     Input: in.func, in.anat
     Output: out.coreg_func, out.coreg_anat
     """
-    matlab_cmd = _get_matlab_cmd(matlab_cmd)
     in_node = Node(IdentityInterface(fields=["func", "anat"]), name="in")
     out_node = Node(IdentityInterface(fields=["coreg_func", "coreg_anat"]), name="out")
 
@@ -167,10 +156,7 @@ def coregistration_task(name, working_dir=None, matlab_cmd=None):
 
     coreg = Node(spm.Coregister(), name="coregister")
     coreg.inputs.separation = [1, 1]
-    coreg.interface.mlab = mlab.MatlabCommand(
-        matlab_cmd=matlab_cmd, resource_monitor=False, single_comp_thread=False
-    )
-    coreg.interface.mlab.inputs.uses_mcr = "matlabmcr" in matlab_cmd
+    _setup_matlab(coreg, matlab_cmd)
 
     coreg_wf = Workflow(name=name, base_dir=working_dir)
 
