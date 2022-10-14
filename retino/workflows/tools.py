@@ -15,7 +15,7 @@ def _setup_matlab(node, matlab_cmd):
             matlab_cmd = "matlab -nodesktop -nosplash"
         else:
             print("no matlab command found, use MCR.")
-            mcr_path = glob.glob("/opt/matlabmcr-*/v*")[0]
+            mcr_path = glob.glob("/opt/mcr*/v*")[0]
             spm_path = glob.glob("/opt/spm12*/run_spm12.sh")[0]
             matlab_cmd = f"{spm_path} {mcr_path} script"
 
