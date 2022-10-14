@@ -1,6 +1,8 @@
 """Utility functions for all workflows."""
 import os
 import inspect
+import distutils.spawn
+import glob
 
 from nipype import Node, Function
 
@@ -8,8 +10,12 @@ from nipype import Node, Function
 def _get_matlab_cmd(matlab_cmd):
     if matlab_cmd:
         return matlab_cmd
-    else:
+    if distutils.spawn.find_executable("matlab"):
         return "matlab -nodesktop -nosplash"
+    else:
+        print("no matlab command found, use MCR.")
+        mcr_path = glob.glob("/opt/matlabmcr-*/v*")[0]
+        return f"/opt/spm12/run_spm12.sh {mcr_path} script"
 
 
 def _get_num_thread(n=None):

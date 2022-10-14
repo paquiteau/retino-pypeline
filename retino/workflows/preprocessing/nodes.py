@@ -30,6 +30,7 @@ def realign_task(matlab_cmd=None, name="realign"):
     realign.interface.mlab = mlab.MatlabCommand(
         matlab_cmd=matlab_cmd, resource_monitor=False, single_comp_thread=False
     )
+    realign.interface.mlab.inputs.uses_mcr = "matlabmcr" in matlab_cmd
     realign.n_procs = 3
     return realign
 
@@ -164,6 +165,7 @@ def coregistration_task(name, working_dir=None, matlab_cmd=None):
     coreg.interface.mlab = mlab.MatlabCommand(
         matlab_cmd=matlab_cmd, resource_monitor=False, single_comp_thread=False
     )
+    coreg.interface.mlab.inputs.uses_mcr = "matlabmcr" in matlab_cmd
 
     coreg_wf = Workflow(name=name, base_dir=working_dir)
 
