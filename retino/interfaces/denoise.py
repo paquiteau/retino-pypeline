@@ -16,7 +16,14 @@ from nipype.interfaces.base import (
 from dataclasses import dataclass
 from nipype.utils.filemanip import split_filename
 
-from denoiser.denoise import hybrid_pca, mp_pca, nordic, optimal_thresholding, raw_svt
+from denoiser.denoise import (
+    hybrid_pca,
+    mp_pca,
+    nordic,
+    optimal_thresholding,
+    raw_svt,
+    adaptive_thresholding,
+)
 from denoiser.space_time.utils import estimate_noise
 from nipype.interfaces.matlab import MatlabCommand, MatlabInputSpec
 
@@ -35,6 +42,9 @@ DENOISER_MAP = {
         *args, loss="ope", **kwargs
     ),
     "nordic": nordic,
+    "adaptive-qut": lambda *args, **kwargs: adaptive_thresholding(
+        *args, method="qut", **kwargs
+    ),
 }
 
 
@@ -198,7 +208,7 @@ class PatchDenoise(SimpleInterface):
             extra_kwargs = self.inputs.extra_kwargs
         else:
             extra_kwargs = dict()
-        if d_par.method in ["nordic", "hybrid-pca"]:
+        if d_par.method in ["nordic", "hybrid-pca", "adaptive-qut"]:
             extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
         if denoise_func is not None:
