@@ -27,10 +27,15 @@ def realign_task(matlab_cmd=None, name="realign"):
     realign.inputs.separation = 1.0
     realign.inputs.fwhm = 1.0
     realign.inputs.register_to_mean = False
-    realign.interface.mlab = mlab.MatlabCommand(
-        matlab_cmd=matlab_cmd, resource_monitor=False, single_comp_thread=False
-    )
-    realign.interface.mlab.inputs.uses_mcr = "matlabmcr" in matlab_cmd
+    if "matlabmcr" in matlab_cmd:
+        realign.inputs.matlab_cmd = matlab_cmd
+        realign.inputs.use_mcr = True
+    else:
+        realign.interface.mlab = mlab.MatlabCommand(
+            matlab_cmd=matlab_cmd,
+            resource_monitor=False,
+            single_comp_thread=False,
+        )
     realign.n_procs = 3
     return realign
 
