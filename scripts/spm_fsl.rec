@@ -1,0 +1,104 @@
+
+# Singularity recipy file
+#
+Bootstrap: docker
+From: ubuntu:22.04
+
+%post
+    ###################################
+    # Install SPM12 + MCR 9.7 (2019b) #
+    ###################################
+
+    # from https://github.com/spm/spm-docker/blob/main/matlab/singularity.def
+    apt-get -qq update
+    DEBIAN_FRONTEND=noninteractive apt-get --yes --quiet --no-install-recommends install \
+      unzip \
+      xorg \
+      curl \
+      wget \
+      ca-certificates
+
+    mkdir /opt/mcr /opt/mcr_install
+    MATLAB_VERSION=R2019b
+    MCR_VERSION=v97
+    MCR_UPDATE=9
+    wget -q --show-progress \
+    --output-document /opt/mcr_install/mcr.zip \
+    https://perso.crans.org/comby/neurospin/MATLAB_Runtime_${MATLAB_VERSION}_Update_${MCR_UPDATE}_glnxa64.zip
+
+    unzip -q /opt/mcr_install/mcr.zip -d /opt/mcr_install
+    cat << EOF > /opt/mcr_install/installer_input.txt
+    mode silent
+    destinationFolder /opt/mcr
+    agreeToLicense yes
+    product.MATLAB_Runtime___Core true
+    product.MATLAB_Runtime___Numerics true
+EOF
+    /opt/mcr_install/install -inputFIle /opt/mcr_install/installer_input.txt
+    rm -rf /opt/mcr_install
+
+    mkdir /opt/spm12
+    SPM_REVISION=r7771
+    curl -fsSL --retry 5 https://www.fil.ion.ucl.ac.uk/spm/download/restricted/bids/spm12_${SPM_REVISION}_Linux_${MATLAB_VERSION}.zip > /opt/spm12.zip
+    unzip -q /opt/spm12.zip -d /opt
+    rm -f /opt/spm12.zip
+    chmod +x /opt/spm12/run_spm12.sh /opt/spm12/spm12
+    ln -s /opt/spm12/spm12_mcr/spm12/spm12/bin/spm12-mcr /usr/local/bin/spm12
+
+    /opt/spm12/run_spm12.sh /opt/mcr/${MCR_VERSION} function exit
+
+    ######################
+    # Install FSL 5.0.11 #
+    ######################
+
+    apt-get install -y -q --no-install-recommends \
+        bc \
+        dc \
+        file \
+        libfontconfig1 \
+        libfreetype6 \
+        libgl1-mesa-dev \
+        libgl1-mesa-dri \
+        libglu1-mesa-dev \
+        libgomp1 \
+        libice6 \
+        libxcursor1 \
+        libxft2 \
+        libxinerama1 \
+        libxrandr2 \
+        libxrender1 \
+        libxt6 \
+        sudo \
+        wget \
+        git
+
+    apt-get --yes remove unzip curl
+    apt-get --yes autoremove
+    apt-get --yes clean
+
+    rm -rf /var/lib/apt/lists/*
+    echo "Downloading FSL ..."
+    mkdir -p /opt/fsl-5.0.11
+    curl -fsSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.11-centos6_64.tar.gz \
+    | tar -xz -C /opt/fsl-5.0.11 --strip-components 1
+    echo "Installing FSL conda environment ..."
+    bash /opt/fsl-5.0.11/etc/fslconf/fslpython_install.sh -f /opt/fsl-5.0.11
+
+
+%environment
+    export FORCE_SPMMCR="1"
+    export FSLDIR="/opt/fsl-5.0.11"
+    export FSLGECUDAQ="cuda.q"
+    export FSLLOCKDIR=""
+    export FSLMACHINELIST=""
+    export FSLMULTIFILEQUIT="TRUE"
+    export FSLOUTPUTTYPE="NIFTI_GZ"
+    export FSLREMOTECALL=""
+    export FSLTCLSH="/opt/fsl-5.0.11/bin/fsltclsh"
+    export FSLWISH="/opt/fsl-5.0.11/bin/fslwish"
+    export LANG="en_US.UTF-8"
+    export LC_ALL="en_US.UTF-8"
+    export MATLABCMD="/opt/mcr/v97/toolbox/matlab"
+    export PATH="/opt/fsl-5.0.11/bin:$PATH"
+    export PATH="/opt/miniconda-latest/bin:$PATH"
+    export SPM_HTML_BROWSER=0

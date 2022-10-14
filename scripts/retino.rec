@@ -1,0 +1,59 @@
+# Singularity recipy file
+#
+Bootstrap: localimage
+From: spm_fsl.sif
+
+%post
+
+    apt-get -qq update
+    DEBIAN_FRONTEND=noninteractive apt-get --yes --quiet --no-install-recommends install \
+      curl \
+    ###################
+    # Python Packages #
+    ###################
+
+
+    export PATH="/opt/miniconda-latest/bin:$PATH"
+    echo "Downloading Miniconda installer ..."
+    conda_installer="/tmp/miniconda.sh"
+    conda_env_name="retino_env"
+    curl -fsSL --retry 5 -o "$conda_installer" https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash "$conda_installer" -b -p /opt/miniconda-latest
+    rm -f "$conda_installer"
+    conda update -yq -nbase conda
+    conda config --system --prepend channels conda-forge
+    conda config --system --set auto_update_conda false
+    conda config --system --set show_channel_urls true
+    sync && conda clean -y --all && sync
+    conda create -y -q --name $conda_env_name
+    bash -c "source activate $conda_env_name
+    pip install --no-cache-dir  \
+        git+https://github.com/paquiteau/patch-denoising.git \
+        git+https://github.com/paquiteau/retino-pypeline.git
+    "
+    rm -rf ~/.cache/pip/*
+    sync
+
+    apt-get --yes remove unzip curl
+    apt-get --yes autoremove
+    apt-get --yes clean
+    rm -rf /var/lib/apt/lists/*
+
+%environment
+    export CONDA_DIR="/opt/miniconda-latest"
+    export FORCE_SPMMCR="1"
+    export FSLDIR="/opt/fsl-5.0.11"
+    export FSLGECUDAQ="cuda.q"
+    export FSLLOCKDIR=""
+    export FSLMACHINELIST=""
+    export FSLMULTIFILEQUIT="TRUE"
+    export FSLOUTPUTTYPE="NIFTI_GZ"
+    export FSLREMOTECALL=""
+    export FSLTCLSH="/opt/fsl-5.0.11/bin/fsltclsh"
+    export FSLWISH="/opt/fsl-5.0.11/bin/fslwish"
+    export LANG="en_US.UTF-8"
+    export LC_ALL="en_US.UTF-8"
+    export MATLABCMD="/opt/mcr/v97/toolbox/matlab"
+    export PATH="/opt/fsl-5.0.11/bin:$PATH"
+    export PATH="/opt/miniconda-latest/bin:$PATH"
+    export SPM_HTML_BROWSER=0
