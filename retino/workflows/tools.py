@@ -16,7 +16,8 @@ def _setup_matlab(node, matlab_cmd):
         else:
             print("no matlab command found, use MCR.")
             mcr_path = glob.glob("/opt/matlabmcr-*/v*")[0]
-            matlab_cmd = f"/opt/spm12/run_spm12.sh {mcr_path} script"
+            spm_path = glob.glob("/opt/spm12*/run_spm12.sh")[0]
+            matlab_cmd = f"{spm_path} {mcr_path} script"
 
     if "matlabmcr" in matlab_cmd:
         node.inputs.matlab_cmd = matlab_cmd
