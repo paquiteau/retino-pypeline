@@ -1,1 +1,4 @@
-#!/usr/bin/env python3
+"""Analysis workflows."""
+from .analysis import RetinoAnalysisWorkflowManager
+
+__all__ = ["RetinoAnalysisWorkflowManager"]
