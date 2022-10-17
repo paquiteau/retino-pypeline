@@ -36,8 +36,8 @@ def add_design_matrix(wf, n_cycles, mode="clock"):
 def add_contrast(wf, mode="clock"):
     """Add contrast Interface for specific mode to workflow."""
     contrast = contrast_node(extra_name=f"_{mode}")
-    add2wf(wf, f"design_{mode}", contrast, "design_matrix", "design_matrices")
-    add2wf(wf, "selectfile", contrast, f"data_{mode}", "fmri_timeseries")
+    add2wf(wf, f"design_{mode}", "design_matrix", contrast, "design_matrices")
+    add2wf(wf, "selectfiles", f"data_{mode}", contrast, "fmri_timeseries")
 
     return connect_volumetric_tr(wf, contrast)
 
@@ -52,7 +52,7 @@ def add_contrast_anticlock(wf):
     return add_contrast(wf, mode="anticlock")
 
 
-def add_contrat_glob(wf):
+def add_contrast_glob(wf):
     """Add contrast for fixed effect stats."""
     contrast = contrast_glob_node()
 
@@ -69,7 +69,7 @@ def _gk(d, k):
 
 def add_phase_map(wf, threshold):
     """Add phase map to workflow."""
-    phase_map = phase_map_node()
+    phase_map = phase_map_node(threshold=threshold)
     # fill all connections.
     for mode in ["clock", "anticlock"]:
         for op in ["cos", "sin"]:
@@ -89,5 +89,4 @@ def add_phase_map(wf, threshold):
             f"{op}_glob",
         )
     phase_map.inputs.threshold = threshold
-
     return wf
