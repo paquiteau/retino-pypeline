@@ -70,14 +70,14 @@ class DesignMatrixRetino(SimpleInterface):
     def _run_interface(self, runtime):
 
         fmri_timeserie = nib.load(self.inputs.data_file)
-
+        n_scans = fmri_timeserie.shape[-1]
         motion = None
         if isdefined(self.inputs.motion_file):
             motion = np.loadtxt(self.inputs.motion_file)
-
+            motion = motion[:n_scans]
         design_matrix = make_design_matrix(
-            fmri_timeserie.shape[-1],
-            motion,
+            n_scans=n_scans,
+            motion=motion,
             n_cycles=self.inputs.n_cycles,
             clockwise=self.inputs.clockwise_rotation,
             TR=self.inputs.volumetric_tr,
@@ -87,7 +87,7 @@ class DesignMatrixRetino(SimpleInterface):
         _, base, _ = split_filename(self.inputs.data_file)
         filename = f"{base}_dm.csv"
         design_matrix.to_csv(filename)
-        self._results["design_matrix"] = filename
+        self._results["design_matrix"] = os.path.abspath(filename)
         return runtime
 
 
@@ -159,11 +159,13 @@ class ContrastRetino(SimpleInterface):
         else:
             _, basename, _ = split_filename(self.inputs.fmri_timeseries)
         # save results to files.
-        for arr, suffix in zip([cos, sin, rot], ["cos", "sin", "rot"]):
+        for arr, reg in zip([cos, sin, rot], ["cos", "sin", "rot"]):
+            d = {}
             for key in self.available_stats:
-                filename = f"{basename}_{suffix}_{key}.nii"
+                filename = f"{basename}_{reg}_{key}.nii"
                 arr[key].to_filename(filename)
-                self._results[suffix + "_stat"] = os.path.abspath(filename)
+                d[key] = os.path.abspath(filename)
+            self._results[reg + "_stat"] = d
         return runtime
 
 
@@ -221,5 +223,5 @@ class PhaseMap(SimpleInterface):
         )
 
         phase_map.to_filename(out_name)
-        self._results["phase_map"] = os.path.absname(out_name)
+        self._results["phase_map"] = os.path.abspath(out_name)
         return runtime

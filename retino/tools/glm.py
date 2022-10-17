@@ -38,7 +38,7 @@ def make_design_matrix(
         -np.pi / 2 + sign * np.arange(n_scans) * 2 * n_cycles * np.pi / n_scans
     )
 
-    if motion:
+    if motion is not None:
         regs = np.hstack((cos_reg[:, None], sin_reg[:, None], motion))
     else:
         regs = np.hstack((cos_reg[:, None], sin_reg[:, None]))
