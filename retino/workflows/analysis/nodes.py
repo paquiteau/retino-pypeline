@@ -33,7 +33,7 @@ def contrast_glob_node():
         contrast.inputs.fmri_timeseries = [fmri_clock, fmri_anticlock]
         contrast.inputs.design_matrices = [dm_clock, dm_anticlock]
         contrast.inputs.volumetric_tr = volumetric_tr
-        results = contrast.run
+        results = contrast.run()
         return (
             results.outputs.cos_stat,
             results.outputs.sin_stat,
@@ -43,15 +43,15 @@ def contrast_glob_node():
     return func2node(
         func_node,
         name="contrast_glob",
-        output_name=["cos_stat", "sin_stat", "rot_stat"],
+        output_names=["cos_stat", "sin_stat", "rot_stat"],
     )
 
 
-def phase_map_node(threshold, extra_name):
+def phase_map_node(threshold, extra_name=""):
     """Phase Map Node."""
     return Node(PhaseMap(threshold=threshold), name="phase_map" + extra_name)
 
 
-def tsnr_map_node(threshodl, extra_name):
+def tsnr_map_node(extra_name):
     """TSNR Node."""
     return Node(TSNR(), name="tsnr" + extra_name)
