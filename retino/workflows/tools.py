@@ -63,3 +63,22 @@ def func2node(func, output_names, name=None, input_names=None):
         Function(function=func, input_names=input_names, output_names=output_names),
         name=name,
     )
+
+
+def show_graph(wf, graph2use="colored"):
+    """Check the workflow. Also draws a representation."""
+    # TODO ascii plot: https://github.com/ggerganov/dot-to-ascii
+
+    fname = wf.write_graph(dotfilename=f"graph_{graph2use}.dot", graph2use=graph2use)
+    return fname
+
+
+def show_graph_nb(wf, graph2use="colored", detailed=False):
+    """Show the workflow in a Ipython Notebook."""
+    from IPython.display import Image
+
+    if detailed:
+        return Image(
+            show_graph(wf, graph2use=graph2use).split(".")[0] + "_detailed.png"
+        )
+    return Image(show_graph(wf))

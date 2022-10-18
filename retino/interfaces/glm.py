@@ -73,7 +73,10 @@ class DesignMatrixRetino(SimpleInterface):
         n_scans = fmri_timeserie.shape[-1]
         motion = None
         if isdefined(self.inputs.motion_file):
-            motion = np.loadtxt(self.inputs.motion_file)
+            try:
+                motion = np.loadtxt(self.inputs.motion_file)
+            except ValueError:
+                motion = np.loadtxt(self.inputs.motion_file, skiprows=1)
             motion = motion[:n_scans]
         design_matrix = make_design_matrix(
             n_scans=n_scans,
