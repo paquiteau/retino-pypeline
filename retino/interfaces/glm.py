@@ -37,6 +37,7 @@ class DesignMatrixRetinoInputSpec(BaseInterfaceInputSpec):
             "Set this parameter to the first frame that reaches the steady state."
         ),
     )
+    tr_unit = traits.Enum("s", "ms", desc="Unit of the specified TR.")
 
 
 class DesignMatrixRetinoOuputSpec(TraitedSpec):
@@ -85,6 +86,7 @@ class DesignMatrixRetino(SimpleInterface):
             clockwise=self.inputs.clockwise_rotation,
             TR=self.inputs.volumetric_tr,
             min_onset=self.inputs.min_onset,
+            TR_unit=self.inputs.tr_unit,
         )
 
         _, base, _ = split_filename(self.inputs.data_file)

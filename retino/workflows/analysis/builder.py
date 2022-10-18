@@ -12,7 +12,7 @@ def connect_volumetric_tr(wf, node):
     return wf
 
 
-def add_design_matrix(wf, n_cycles, mode="clock"):
+def add_design_matrix(wf, n_cycles, mode="clock", tr_unit="s"):
     """Add Design Matrix Interface to workflow."""
     file_node = wf.get_node("selectfiles")
     dm = design_matrix_node(
@@ -20,6 +20,7 @@ def add_design_matrix(wf, n_cycles, mode="clock"):
         clockwise=(mode == "clock"),
         extra_name=f"_{mode}",
     )
+    dm.inputs.tr_unit = tr_unit
 
     wf.connect(
         [

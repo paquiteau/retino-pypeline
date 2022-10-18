@@ -11,6 +11,7 @@ def make_design_matrix(
     clockwise=True,
     TR=1.0,
     min_onset=0,
+    TR_unit="s",
 ):
     """Create a design matrix for retinotopy.
 
@@ -29,6 +30,11 @@ def make_design_matrix(
     min_onset: int
         start of the experiment
     """
+    # TODO: add option to set unit time in second or millisecond.
+    if TR_unit == "ms":
+        TR = TR / 1000
+    elif TR_unit != "s":
+        raise ValueError("unknown unit for TR. supported are `ms`, `s`")
     sign = clockwise * 2 - 1  # clockwise = 1, anticlockwise = -1
 
     cos_reg = np.cos(
