@@ -12,19 +12,23 @@ def _tplt_node(preproc_code):
     """Template creation node for analysis workflow."""
     args = [["sub_id", "preproc_code", "denoise_str", "sequence"]]
     template = {
-        "data_clock": "sub_%02i/preproc/%s_%s/*%s_ClockwiseTask*.nii",
-        "data_anticlock": "sub_%02i/preproc/%s_%s/*%s_AntiClockwiseTask*.nii",
+        "data_clock": "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask*.nii",
+        "data_anticlock": "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask*.nii",
+        "motion_clock": "%s*",
+        "motion_anticlock": "%s*",
     }
 
     template_args = {
         "data_clock": args,
         "data_anticlock": args,
+        "motion_clock": [[""]],
+        "motion_anticlock": [[""]],
     }
     if "r" in preproc_code:
-        template["motion_clock"] = "sub_%02i/preproc/%s_%s/*%s_ClockwiseTask.txt"
+        template["motion_clock"] = "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask.txt"
         template[
             "motion_anticlock"
-        ] = "sub_%02i/preproc/%s_%s/*%s_AntiClockwiseTask.txt"
+        ] = "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask.txt"
         template_args["motion_clock"] = args
         template_args["motion_anticlock"] = args
 
@@ -51,16 +55,13 @@ class AnalysisWorkflowManager(WorkflowManager):
            |-> files
            |-> sinker
         """
-        templates_args = ["sub_id", "sequence", "preproc_code", "denoise_str"]
-
-        # template node needs to be implemented in child classes.
         tplt_node = func2node(
             _tplt_node,
             name="template_node",
             output_names=["field_template", "template_args"],
         )
         files = file_task(
-            infields=templates_args,
+            infields=self.input_fields,
             outfields=[
                 "data_clock",
                 "data_anticlock",
@@ -72,7 +73,7 @@ class AnalysisWorkflowManager(WorkflowManager):
         input_node = wf.get_node("input")
         add2wf_dwim(wf, input_node, tplt_node, "preproc_code")
         add2wf_dwim(wf, tplt_node, files, ["field_template", "template_args"])
-        add2wf_dwim(wf, input_node, files, templates_args)
+        add2wf_dwim(wf, input_node, files, self.input_fields)
         return wf
 
 
