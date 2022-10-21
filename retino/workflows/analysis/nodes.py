@@ -26,13 +26,21 @@ def contrast_node(extra_name):
 def contrast_glob_node():
     """Contrast Node for fixed Effect."""
 
-    def func_node(fmri_clock, fmri_anticlock, dm_clock, dm_anticlock, volumetric_tr):
+    def func_node(
+        fmri_clock,
+        fmri_anticlock,
+        dm_clock,
+        dm_anticlock,
+        volumetric_tr,
+        noise_model,
+    ):
         from retino.interfaces.glm import ContrastRetino
 
         contrast = ContrastRetino()
         contrast.inputs.fmri_timeseries = [fmri_clock, fmri_anticlock]
         contrast.inputs.design_matrices = [dm_clock, dm_anticlock]
         contrast.inputs.volumetric_tr = volumetric_tr
+        contrast.inputs.noise_model = noise_model
         results = contrast.run()
         return (
             results.outputs.cos_stat,

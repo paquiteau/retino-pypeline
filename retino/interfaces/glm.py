@@ -4,6 +4,7 @@ import os
 
 import nibabel as nib
 import numpy as np
+
 from nilearn.glm import threshold_stats_img
 from nipype.interfaces.base import (
     SimpleInterface,
@@ -115,6 +116,11 @@ class ContrastRetinoInputSpec(BaseInterfaceInputSpec):
     )
     volumetric_tr = traits.Float(1.0, desc="the time to acquire a single volume.")
 
+    noise_model = traits.Str(
+        "ar1",
+        usedefault=True,
+        desc="Noise model for the GLM, `ar(N)` or `ols`",
+    )
     first_level_kwargs = traits.Dict(
         desc="extra kwargs for the first level Model of nilearn"
     )
@@ -149,18 +155,21 @@ class ContrastRetino(SimpleInterface):
 
     def _run_interface(self, runtime):
 
+        if not isdefined(self.inputs.first_level_kwargs):
+            self.inputs.first_level_kwargs = {}
         cos, sin, rot = get_contrast_zscore(
             self.inputs.fmri_timeseries,
             self.inputs.design_matrices,
             self.inputs.volumetric_tr,
-            self.inputs.first_level_kwargs,
+            noise_model=self.inputs.noise_model,
+            **self.inputs.first_level_kwargs,
         )
 
         # get the base name
-        if isinstance(self.inputs.fmri_timeseries, list):
+        if len(self.inputs.fmri_timeseries) == 2:
             _, basename, _ = split_filename(self.inputs.fmri_timeseries[0])
-            basename.replace("AntiClock", "Global")
-            basename.replace("Clock", "Global")
+            basename = basename.replace("AntiClock", "Global")
+            basename = basename.replace("Clock", "Global")
         else:
             _, basename, _ = split_filename(self.inputs.fmri_timeseries)
         # save results to files.
