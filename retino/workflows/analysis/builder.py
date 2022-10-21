@@ -1,8 +1,14 @@
 """Builder function for the analysis."""
 
-from ..base.builder import add2wf
+from ..base.builder import add2wf, add2wf_dwim
 
-from .nodes import design_matrix_node, contrast_node, contrast_glob_node, phase_map_node
+from .nodes import (
+    cond_design_matrix_node,
+    design_matrix_node,
+    contrast_node,
+    contrast_glob_node,
+    phase_map_node,
+)
 
 
 def connect_volumetric_tr(wf, node):
@@ -32,6 +38,23 @@ def add_design_matrix(wf, n_cycles, mode="clock", tr_unit="s"):
         ]
     )
     return connect_volumetric_tr(wf, dm)
+
+
+def add_cond_design_matrix(wf, n_cycles, mode="clock", tr_units="s"):
+    """Add a conditional design matrix node."""
+    file_node = wf.get_node("selectfiles")
+    dm = cond_design_matrix_node(
+        n_cycles,
+        clockwise=(mode == "clock"),
+        extra_name=f"_{mode}",
+    )
+    dm.inputs.tr_unit = tr_units
+
+    add2wf(wf, file_node, f"data_{mode}", dm, "data_file")
+    add2wf(wf, file_node, f"motion_{mode}", dm, "motion_file")
+    add2wf_dwim(wf, "input", dm, ["volumetric_tr", "preproc_code"])
+
+    return wf
 
 
 def add_contrast(wf, mode="clock"):

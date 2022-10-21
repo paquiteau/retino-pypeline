@@ -5,7 +5,12 @@ from ..tools import func2node, _get_key
 from ..base.builder import add2wf_dwim, add2sinker
 from ..base.nodes import file_task
 
-from .builder import add_design_matrix, add_contrast, add_contrast_glob, add_phase_map
+from .builder import (
+    add_cond_design_matrix,
+    add_contrast,
+    add_contrast_glob,
+    add_phase_map,
+)
 
 
 def _tplt_node(preproc_code):
@@ -92,7 +97,7 @@ class RetinoAnalysisWorkflowManager(AnalysisWorkflowManager):
     def _build(self, wf, n_cycles, threshold=None):
         to_sink = []
         for mode in ["clock", "anticlock"]:
-            wf = add_design_matrix(wf, n_cycles, mode)
+            wf = add_cond_design_matrix(wf, n_cycles, mode)
             wf = add_contrast(wf, mode)
             to_sink.extend(
                 [

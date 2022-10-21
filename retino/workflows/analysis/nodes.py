@@ -18,6 +18,42 @@ def design_matrix_node(n_cycles, clockwise, extra_name=""):
     )
 
 
+def cond_design_matrix_node(n_cycles, clockwise, extra_name=""):
+    """Compute a design matrix with motion regressor or not."""
+
+    def func_node(
+        data_file,
+        n_cycles,
+        motion_file=None,
+        min_onset=0,
+        volumetric_tr=1.0,
+        tr_unit="s",
+        clockwise_rotation=True,
+        preproc_code="v",
+    ):
+        from retino.interfaces.glm import DesignMatrixRetino
+
+        dm = DesignMatrixRetino(
+            data_file=data_file,
+            n_cycles=n_cycles,
+            volumetric_tr=volumetric_tr,
+            tr_unit=tr_unit,
+            min_onset=min_onset,
+            clockwise_rotation=clockwise_rotation,
+        )
+
+        if "r" in preproc_code:
+            dm.inputs.motion_file = motion_file
+        return dm.run().outputs.design_matrix
+
+    node = func2node(
+        func_node, output_names=["design_matrix"], name="design" + extra_name
+    )
+    node.inputs.n_cycles = n_cycles
+    node.inputs.clockwise = clockwise
+    return node
+
+
 def contrast_node(extra_name):
     """Contrast Node."""
     return Node(ContrastRetino(), name="contrast" + extra_name)
