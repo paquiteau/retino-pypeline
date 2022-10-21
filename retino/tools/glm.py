@@ -46,16 +46,17 @@ def make_design_matrix(
 
     if motion is not None:
         regs = np.hstack((cos_reg[:, None], sin_reg[:, None], motion))
+        reg_names = ["cos", "sin", "tx", "ty", "tz", "rx", "ry", "rz"]
     else:
         regs = np.hstack((cos_reg[:, None], sin_reg[:, None]))
-
+        reg_names = ["cos", "sin"]
     return make_first_level_design_matrix(
         np.arange(n_scans) * TR,
         drift_model="polynomial",
         drift_order=1,
         hrf_model="spm",
         add_regs=regs,
-        add_reg_names=["cos", "sin", "tx", "ty", "tz", "rx", "ry", "rz"],
+        add_reg_names=reg_names,
         min_onset=min_onset,
     )
 
