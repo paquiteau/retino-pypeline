@@ -28,15 +28,9 @@ def add_design_matrix(wf, n_cycles, mode="clock", tr_unit="s"):
     )
     dm.inputs.tr_unit = tr_unit
 
-    wf.connect(
-        [
-            (
-                file_node,
-                dm,
-                [(f"data_{mode}", "data_file"), (f"motion_{mode}", "motion_file")],
-            ),
-        ]
-    )
+    add2wf(wf, file_node, f"data_{mode}", dm, "data_file")
+    add2wf(wf, file_node, f"motion_{mode}", dm, "motion_file")
+
     return connect_volumetric_tr(wf, dm)
 
 

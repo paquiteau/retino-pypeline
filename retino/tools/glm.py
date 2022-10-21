@@ -61,10 +61,8 @@ def make_design_matrix(
     )
 
 
-def get_contrast_zscore(fmri_timeseries, design_matrices, TR, first_level_kwargs=None):
+def get_contrast_zscore(fmri_timeseries, design_matrices, TR, **first_level_kwargs):
     """Get contrast for the retinotopy."""
-    first_level_kwargs = first_level_kwargs or {}
-
     if isinstance(design_matrices, list):
         design_matrices = [pd.read_csv(dm, index_col=0) for dm in design_matrices]
     else:

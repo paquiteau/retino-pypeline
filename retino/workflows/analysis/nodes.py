@@ -68,7 +68,7 @@ def contrast_glob_node():
         dm_clock,
         dm_anticlock,
         volumetric_tr,
-        noise_model,
+        noise_model="ar1",
     ):
         from retino.interfaces.glm import ContrastRetino
 
