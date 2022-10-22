@@ -10,6 +10,7 @@ from .builder import (
     add_contrast,
     add_contrast_glob,
     add_phase_map,
+    add_tsnr_map,
 )
 
 
@@ -17,6 +18,7 @@ def _tplt_node(preproc_code):
     """Template creation node for analysis workflow."""
     args = [["sub_id", "preproc_code", "denoise_str", "sequence"]]
     template = {
+        "mask": "sub_%02i/preproc_extra/*%s_ClockwiseTask_mask.nii",
         "data_clock": "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask*.nii",
         "data_anticlock": "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask*.nii",
         "motion_clock": "%s*",
@@ -24,6 +26,7 @@ def _tplt_node(preproc_code):
     }
 
     template_args = {
+        "mask": [["sub_id", "sequence"]],
         "data_clock": args,
         "data_anticlock": args,
         "motion_clock": [[""]],
@@ -136,4 +139,13 @@ class FirstLevelStats(AnalysisWorkflowManager):
     workflow_name = "first_stats"
 
     def _build(self, wf):
-        ...
+        add_tsnr_map(wf)
+        add2sinker(wf, [("tsnr", "tsnr_file", "tsnr_map")], "first_stats.@")
+        sinker = wf.get_node("sinker")
+        sinker.inputs.regexp_substitutions = [
+            (
+                r"_denoise_str_(.*?)_preproc_code_(.*?)_sequence_(.*?)_sub_id(.*?)/",
+                r"\g<2>_\g<1>/",
+            ),
+        ]
+        return wf

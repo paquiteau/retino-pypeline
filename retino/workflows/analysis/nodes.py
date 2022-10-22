@@ -96,6 +96,6 @@ def phase_map_node(threshold, extra_name=""):
     return Node(PhaseMap(threshold=threshold), name="phase_map" + extra_name)
 
 
-def tsnr_map_node(extra_name):
+def tsnr_map_node(extra_name=""):
     """TSNR Node."""
     return Node(TSNR(), name="tsnr" + extra_name)

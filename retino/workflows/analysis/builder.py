@@ -8,6 +8,7 @@ from .nodes import (
     contrast_node,
     contrast_glob_node,
     phase_map_node,
+    tsnr_map_node,
 )
 
 
@@ -107,4 +108,12 @@ def add_phase_map(wf, threshold):
             f"{op}_glob",
         )
     phase_map.inputs.threshold = threshold
+    return wf
+
+
+def add_tsnr_map(wf):
+    """Add a tSNR node."""
+    tsnr_node = tsnr_map_node()
+    add2wf(wf, "selectfiles", "data_clock", tsnr_node, "in_file")
+    add2wf(wf, "selectfiles", "mask", tsnr_node, "mask_file")
     return wf
