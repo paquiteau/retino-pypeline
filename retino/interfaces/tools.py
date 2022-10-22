@@ -3,6 +3,7 @@ import os
 
 import nibabel as nib
 import numpy as np
+import scipy as sp
 from nipype.interfaces.base import (
     SimpleInterface,
     BaseInterfaceInputSpec,
@@ -100,18 +101,18 @@ class TSNR(SimpleInterface):
 
         nii = nib.load(self.inputs.in_file)
         data = nii.get_fdata()
-        avg = np.mean(data, axis=-1)
-        tsnr = np.empty_like(avg)
+        tsnr = np.zeros(data.shape[:-1], dtype=np.float32)
 
         if isdefined(self.inputs.mask_file) and self.inputs.mask_file:
             mask = nib.load(self.inputs.mask_file).get_fdata() > 0
-            data = data * mask[..., None]
         else:
-            mask = np.ones_like(avg, dtype=np.int8)
-
-        std = np.std(data[mask], axis=-1)
-        tsnr[mask] = avg[mask] / std
-
+            mask = np.ones(data.shape[:-1], dtype=np.int16)
+        roi_data = data[mask]
+        roi_data[np.isnan(roi_data)] = 0
+        detrended = sp.signal.detrend(roi_data)
+        # detrended = roi_data
+        std = np.std(detrended, axis=-1)
+        tsnr[mask] = np.mean(detrended, axis=-1) / std
         tsnr_nii = nib.Nifti1Image(tsnr, affine=nii.affine)
 
         filename = os.path.abspath(os.path.basename(self.inputs.in_file) + "_tsnr.nii")
