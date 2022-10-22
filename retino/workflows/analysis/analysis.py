@@ -30,10 +30,10 @@ def _tplt_node(preproc_code):
         "motion_anticlock": [[""]],
     }
     if "r" in preproc_code:
-        template["motion_clock"] = "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask.txt"
+        template["motion_clock"] = "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask*.txt"
         template[
             "motion_anticlock"
-        ] = "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask.txt"
+        ] = "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask*.txt"
         template_args["motion_clock"] = args
         template_args["motion_anticlock"] = args
 
