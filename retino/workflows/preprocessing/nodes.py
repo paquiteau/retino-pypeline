@@ -226,7 +226,7 @@ def cond_denoise_task(name):
                 results = ri2mp.run().outputs
 
                 denoiser.inputs.file_mag = results.mag_file
-                denoiser.inputs.file_phase = results.pha_file
+                denoiser.inputs.file_phase = results.phase_file
             elif data_phase is not None:
                 denoiser.inputs.file_mag = data
                 denoiser.inputs.file_phase = data_phase
