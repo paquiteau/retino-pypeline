@@ -22,7 +22,7 @@ from ..tools import func2node
 _REGEX_SINKER = [
     (r"_sequence_(.*?)([_/])", r"\g<2>"),
     (r"_sub_id_(.*?)([_/])", r"\g<2>"),
-    (r"_denoise_config_(.*?)_", ""),
+    (r"_denoise_str_", ""),
     (r"_task_(.*?)([_/])", r"\g<2>"),
     (r"rsub", "sub"),
     (r"rrsub", "sub"),
