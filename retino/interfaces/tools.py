@@ -109,8 +109,8 @@ class TSNR(SimpleInterface):
             mask = np.ones(data.shape[:-1], dtype=np.int16)
         roi_data = data[mask]
         roi_data[np.isnan(roi_data)] = 0
-        detrended = sp.signal.detrend(roi_data)
-        # detrended = roi_data
+        # detrended = sp.signal.detrend(roi_data)
+        detrended = roi_data
         std = np.std(detrended, axis=-1)
         tsnr[mask] = np.mean(detrended, axis=-1) / std
         tsnr_nii = nib.Nifti1Image(tsnr, affine=nii.affine)

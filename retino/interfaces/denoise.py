@@ -56,7 +56,7 @@ class DenoiseParameters:
     patch_shape: int = 11
     patch_overlap: int = 0
     recombination: str = "weighted"  # "center" is also available
-    mask_threshold: int = 25
+    mask_threshold: int = 10
 
     @property
     def pretty_name(self):
@@ -141,7 +141,7 @@ class PatchDenoiseInputSpec(BaseInterfaceInputSpec):
         xor=["denoise_str"],
         require=["patch_shape", "denoise_method"],
     )
-    mask_threshold = traits.Int(50)
+    mask_threshold = traits.Int(10)
     recombination = traits.Enum("weighted", "mean")
     extra_kwargs = traits.Dict()
 
@@ -179,7 +179,7 @@ class PatchDenoise(SimpleInterface):
 
         if isdefined(self.inputs.in_mag):
             data_mag_nii = nib.load(self.inputs.in_mag)
-            data = data_mag_nii.get_fdata()
+            data = data_mag_nii.get_fdata(dtype=np.float32)
             basename = self.inputs.in_mag
             affine = data_mag_nii.affine
         else:
@@ -224,17 +224,18 @@ class PatchDenoise(SimpleInterface):
             )
         else:
             denoised_data = data
-            noise_std_map = np.std(data, axis=-1)
+            noise_std_map = np.std(data, axis=-1, dtype=np.float32)
         # OUTPUT
+        if np.any(np.iscomplex(denoised_data)):
+            denoised_data = np.abs(denoised_data, dtype=np.float32)
+
         _, base, _ = split_filename(basename)
         base = base.replace("_mag", "")
         base = base.replace("_real", "")
         denoise_filename = f"{base}_d_{d_par.method}.nii"
         noise_map_filename = f"{base}_noise_map.nii"
 
-        denoised_data_img = nib.Nifti1Image(
-            np.abs(denoised_data, dtype=np.float32), affine=affine
-        )
+        denoised_data_img = nib.Nifti1Image(denoised_data, affine=affine)
         denoised_data_img.to_filename(denoise_filename)
 
         noise_map_img = nib.Nifti1Image(noise_std_map, affine=affine)

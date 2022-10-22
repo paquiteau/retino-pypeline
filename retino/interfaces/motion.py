@@ -35,7 +35,7 @@ class ApplyMotion(SimpleInterface):
     def _run_interface(self, runtime):
 
         image_nii = nib.load(self.inputs.in_file)
-        images = image_nii.get_fdata()
+        images = image_nii.get_fdata(dtype=np.float32)
         motions = np.genfromtxt(self.inputs.motion_file, delimiter="  ")
         corrected_images = np.zeros_like(images)
 
