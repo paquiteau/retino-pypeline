@@ -7,6 +7,11 @@ from .base import base_parser
 def get_parser():
     """Get parser."""
     parser = base_parser("Compute the analysis of data")
+    parser.add_argument(
+        "--tsnr",
+        action="store_true",
+        help="compute only the tsnr",
+    )
     return parser
 
 
@@ -28,12 +33,32 @@ def analyse(ns):
     )
 
 
+def tsnr(ns):
+    """Compute tSNR map."""
+    from retino.workflows.analysis import FirstLevelStats
+
+    mgr = FirstLevelStats(ns.dataset, ns.tmpdir)
+    print(ns)
+    wf = mgr.get_workflow()
+    mgr.run(
+        wf,
+        multi_proc=True,
+        sub_id=ns.sub,
+        sequence=ns.sequence,
+        preproc_code=ns.build_code,
+        denoise_str=ns.denoise_str,
+    )
+
+
 def main_cli():
     """Run cli."""
     parser = get_parser()
 
     ns = parser.parse_args()
-    analyse(ns)
+    if ns.tsnr:
+        tsnr(ns)
+    else:
+        analyse(ns)
 
 
 if __name__ == "__main__":
