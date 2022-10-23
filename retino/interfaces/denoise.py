@@ -365,7 +365,7 @@ class NORDICDenoiser(MatlabCommand):
 
         arg_name = [name[4:] for name in self.inputs.__dict__ if "arg_" in name]
         # fill the argument MATLAB Struct.
-        mstruct = f"ARG.DIROUT = '{Path.cwd()}/';\n"
+        mstruct = f"ARG.DIROUT = '{Path.cwd()}/';\n ARG.temporal_phase = 0;\n"
         for name in arg_name:
             val = getattr(self.inputs, "arg_" + name)
             if not isdefined(val):
