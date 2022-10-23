@@ -19,8 +19,8 @@ def _tplt_node(preproc_code):
     args = [["sub_id", "preproc_code", "denoise_str", "sequence"]]
     template = {
         "mask": "sub_%02i/preproc_extra/*%s_ClockwiseTask_mask.nii",
-        "data_clock": "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask*.nii",
-        "data_anticlock": "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask*.nii",
+        "data_clock": "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask*_corrected.nii",
+        "data_anticlock": "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask*_corrected.nii",
         "motion_clock": "%s*",
         "motion_anticlock": "%s*",
     }
