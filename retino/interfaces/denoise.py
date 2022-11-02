@@ -35,6 +35,9 @@ DENOISER_MAP = {
     "optimal-fro": lambda *args, **kwargs: optimal_thresholding(
         *args, loss="fro", **kwargs
     ),
+    "optimal-fro-noise": lambda *args, **kwargs: optimal_thresholding(
+        *args, loss="fro", **kwargs
+    ),
     "optimal-nuc": lambda *args, **kwargs: optimal_thresholding(
         *args, loss="nuc", **kwargs
     ),
@@ -208,7 +211,12 @@ class PatchDenoise(SimpleInterface):
             extra_kwargs = self.inputs.extra_kwargs
         else:
             extra_kwargs = dict()
-        if d_par.method in ["nordic", "hybrid-pca", "adaptive-qut"]:
+        if d_par.method in [
+            "nordic",
+            "hybrid-pca",
+            "adaptive-qut",
+            "optimal-fro-noise",
+        ]:
             extra_kwargs["noise_std"] = nib.load(self.inputs.noise_std_map).get_fdata()
 
         if denoise_func is not None:
