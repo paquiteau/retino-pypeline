@@ -176,7 +176,7 @@ class ContrastRetino(SimpleInterface):
         for arr, reg in zip([cos, sin, rot], ["cos", "sin", "rot"]):
             d = {}
             for key in self.available_stats:
-                filename = f"{basename}_{reg}_{key}.nii"
+                filename = f"{basename}_{reg}_{key}.nii.gz"
                 arr[key].to_filename(filename)
                 d[key] = os.path.abspath(filename)
             self._results[reg + "_stat"] = d
@@ -233,7 +233,7 @@ class PhaseMap(SimpleInterface):
 
         out_name = (
             "_".join(os.path.basename(self.inputs.rot_glob).split("_")[:3])
-            + "_phasemap.nii"
+            + "_phasemap.nii.gz"
         )
 
         phase_map.to_filename(out_name)
