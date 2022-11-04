@@ -16,7 +16,7 @@ def base_parser(prog):
     parser = argparse.ArgumentParser(prog=prog)
 
     parser.add_argument(
-        "--basedir",
+        "basedir",
         default=BASE_DIR,
         help="Base location for dataset and tmp folder.",
     )
