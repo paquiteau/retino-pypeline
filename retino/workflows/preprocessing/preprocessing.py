@@ -196,35 +196,32 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         -------
         wf : a nipype workflow ready to be run.
         """
-        if len(build_code) == 2:
-            b1, b2 = build_code
-        else:
-            b1, b2 = build_code, " "
-
-        if b1 == "v":
+        if len(build_code) == 1:
+            build_code += " "
+        if build_code[0] == "v":
             # cached realignment or nothing
             nxt = (FILES, "data")
-        elif b1 == "r":
+        elif build_code[0] == "r":
             add_realign(wf, REALIGN, FILES, "data")
             nxt = (REALIGN, "realigned_files")
-            if b2 == "d":
+            if build_code[1] == "d":
                 add_denoise_mag(wf, DENOISE, *nxt)
                 nxt = (DENOISE, "denoised_file")
-            elif b2 == "D":
+            elif build_code[1] == "D":
                 add_denoise_cpx(wf, DENOISE, after_realign=True)
                 nxt = (DENOISE, "denoised_file")
-        elif b1 == "d":
+        elif build_code[0] == "d":
             # denoising, realigment
             add_denoise_mag(wf, DENOISE, FILES, "data")
             nxt = (DENOISE, "denoised_file")
-            if b2 == "r":
+            if build_code[1] == "r":
                 add_realign(wf, REALIGN, *nxt)
                 nxt = (REALIGN, "realigned_files")
-        elif b1 == "D":
+        elif build_code[0] == "D":
             # complex denoising and realignment
             add_denoise_cpx(wf, DENOISE, after_realign=False)
             nxt = (DENOISE, "denoised_file")
-            if b2 == "r":
+            if build_code[1] == "r":
                 add_realign(wf, REALIGN, *nxt)
                 nxt = (REALIGN, "realigned_files")
         else:
