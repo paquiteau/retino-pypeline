@@ -21,8 +21,8 @@ from retino.interfaces.motion import (
 
 def realign_task(matlab_cmd=None, name="realign"):
     """Create a realign node."""
-    _setup_matlab(None)
     realign = Node(spm.Realign(), name=name)
+    _setup_matlab(realign)
     realign.inputs.separation = 1.0
     realign.inputs.fwhm = 1.0
     realign.inputs.register_to_mean = False
