@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Script to perform the analysis of data."""
 
-from .base import base_parser
+from .base import base_parser, get_namespace
 
 
 def get_parser():
@@ -53,8 +53,7 @@ def tsnr(ns):
 def main_cli():
     """Run cli."""
     parser = get_parser()
-
-    ns = parser.parse_args()
+    ns = get_namespace(parser)
     if ns.tsnr:
         tsnr(ns)
     else:

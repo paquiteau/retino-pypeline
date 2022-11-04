@@ -2,10 +2,11 @@
 """Base configuration for the cli tools."""
 
 import argparse
+import os
 
-
-DATA_DIR = "/neurospin/optimed/pierre-antoine/dataset/data"
-TMP_DIR = "/neurospin/optimed/pierre-antoine/dataset/tmp"
+BASE_DIR = "/neurospin/optimed/pierre-antoine/dataset/"
+DATA_DIR = BASE_DIR + "data"
+TMP_DIR = BASE_DIR + "tmp"
 TASKS = ["Clockwise", "AntiClockwise"]
 SEQUENCES = ["EPI3D"]
 
@@ -15,13 +16,18 @@ def base_parser(prog):
     parser = argparse.ArgumentParser(prog=prog)
 
     parser.add_argument(
+        "--basedir",
+        default=BASE_DIR,
+        help="Base location for dataset and tmp folder.",
+    )
+    parser.add_argument(
         "--dataset",
-        default=DATA_DIR,
+        default=None,
         help="location of a BIDS like dataset",
     )
     parser.add_argument(
         "--tmpdir",
-        default=TMP_DIR,
+        default=None,
         help="location for temp files",
     )
     parser.add_argument(
@@ -55,3 +61,15 @@ def base_parser(prog):
         help="list of subject to process.",
     )
     return parser
+
+
+def get_namespace(parser):
+    """Get argument and sanitize a bit."""
+    ns = parser.parse_args()
+    if ns.basedir is None:
+        ns.dataset = ns.dataset or DATA_DIR
+        ns.tmpdir = ns.tmpdir or TMP_DIR
+    else:
+        ns.dataset = ns.dataset or os.path.join(ns.basedir, "data")
+        ns.tmpdir = ns.tmpdir or os.path.join(ns.basedir, "tmp")
+    return ns

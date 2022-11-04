@@ -2,7 +2,7 @@
 
 """Script to run preprocessing workflow."""
 
-from retino.cli.base import base_parser, TASKS
+from retino.cli.base import base_parser, get_namespace, TASKS
 
 
 def get_parser():
@@ -63,8 +63,7 @@ def preprocessing(ns):
 def main_cli():
     """Run cli."""
     parser = get_parser()
-
-    ns = parser.parse_args()
+    ns = get_namespace(parser)
 
     if ns.noise:
         noise_preprocessing(ns)
