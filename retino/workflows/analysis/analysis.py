@@ -18,7 +18,7 @@ def _tplt_node(preproc_code):
     """Template creation node for analysis workflow."""
     args = [["sub_id", "preproc_code", "denoise_str", "sequence"]]
     template = {
-        "mask": "sub_%02i/preproc_extra/*%s_ClockwiseTask_mask.nii",
+        #       "mask": "sub_%02i/preproc_extra/*%s_ClockwiseTask_mask.nii",
         "data_clock": "sub_%02i/preproc/%s/%s/*%s_ClockwiseTask*_corrected.nii",
         "data_anticlock": "sub_%02i/preproc/%s/%s/*%s_AntiClockwiseTask*_corrected.nii",
         "motion_clock": "%s*",
@@ -26,7 +26,7 @@ def _tplt_node(preproc_code):
     }
 
     template_args = {
-        "mask": [["sub_id", "sequence"]],
+        #       "mask": [["sub_id", "sequence"]],
         "data_clock": args,
         "data_anticlock": args,
         "motion_clock": [[""]],
