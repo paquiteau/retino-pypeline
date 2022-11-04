@@ -197,7 +197,7 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
         wf : a nipype workflow ready to be run.
         """
         if len(build_code) == 1:
-            build_code += " "
+            build_code += "_"
         if build_code[0] == "v":
             # cached realignment or nothing
             nxt = (FILES, "data")
@@ -228,15 +228,18 @@ class RetinotopyPreprocessingManager(PreprocessingWorkflowManager):
             raise ValueError("Unsupported build code.")
 
         add_topup(wf, TOPUP, nxt[0], nxt[1])
+        to_sink = []
         # no denoising <=> coregistration
         if "d" not in build_code.lower():
             add_coreg(wf, COREG, TOPUP, "out")
-            to_sink = [
-                (COREG, "out.coreg_func", "coreg_func"),
-                (COREG, "out.coreg_anat", "coreg_anat"),
-            ]
+            to_sink.extend(
+                [
+                    (COREG, "out.coreg_func", "coreg_func"),
+                    (COREG, "out.coreg_anat", "coreg_anat"),
+                ]
+            )
         else:
-            to_sink(TOPUP, "out", "func_out")
+            to_sink.append((TOPUP, "out", "func_out"))
 
         # retrieve realignment parameters if available.
         if "r" in build_code:
