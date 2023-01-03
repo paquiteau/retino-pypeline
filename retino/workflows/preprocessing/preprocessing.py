@@ -115,6 +115,8 @@ def _tplt_node(sequence, cached_realignment):
     if "EPI" in sequence:
         template["data_opposite"] = "sub_%02i/func/*%s_Clockwise_1rep_PA.nii"
         file_template_args["data_opposite"] = [["sub_id", "sequence"]]
+    else:
+        template.pop("data_phase")
     return template, file_template_args
 
 
