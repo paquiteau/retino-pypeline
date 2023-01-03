@@ -26,13 +26,14 @@ class WorkflowManager:
 
     The structure of the workflow  after `get_workflow` is the following
 
-                 +----------------+    +----------------+    +----------+
-    +-------+    | template_node  |    |  selectfile    |    |  Nodes   |   +---------+
-    | input |--->|  optional, see |--->|   from         |    |   from   |   | sinker  |
-    +---+---+    | _build_files() |    | _build_files() |    | _build() |   +---------+
-        |        +----------------+    +----------------+    +----------+        ^
-        |                                                                        |
-        +-------(sub_id -> container)--------------------------------------------+
+    .. code::
+                    +----------------+   +----------------+   +----------+
+        +-------+   | template_node  |   |  selectfile    |   |  Nodes   |   +---------+
+        | input |-->|  optional, see |-->|   from         |-->|   from   |-->| sinker  |
+        +---+---+   | _build_files() |   | _build_files() |   | _build() |   +---------+
+            |       +----------------+   +----------------+   +----------+        ^
+            |                                                                     |
+            +-------(sub_id -> container)-----------------------------------------+
 
 
     A nicer visualisation of the workflow is available with `show_graph` or
