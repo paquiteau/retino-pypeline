@@ -1,3 +1,5 @@
+"""A Redefinition of the TOPUP interface to allow for automatic generation of the encoding file"""
+
 import os
 
 import nipype.interfaces.fsl as fsl  # fsl
@@ -56,7 +58,7 @@ class TOPUPOutputSpec(TraitedSpec):
     # out_logfile = File(desc="name of log-file")
 
 
-class myTOPUP(fsl.base.FSLCommand):
+class CustomTOPUP(fsl.base.FSLCommand):
     _cmd = "topup"
     input_spec = TOPUPInputSpec
     output_spec = TOPUPOutputSpec
@@ -69,10 +71,10 @@ class myTOPUP(fsl.base.FSLCommand):
             if path != "":
                 if not os.path.exists(path):
                     raise ValueError("out_base path must exist if provided")
-        return super(myTOPUP, self)._format_arg(name, trait_spec, value)
+        return super(CustomTOPUP, self)._format_arg(name, trait_spec, value)
 
     def _list_outputs(self):
-        outputs = super(myTOPUP, self)._list_outputs()
+        outputs = super(CustomTOPUP, self)._list_outputs()
         del outputs["out_base"]
         base_path = None
         if isdefined(self.inputs.out_base):
@@ -96,7 +98,7 @@ class myTOPUP(fsl.base.FSLCommand):
     def _overload_extension(self, value, name=None):
         if name == "out_base":
             return value
-        return super(myTOPUP, self)._overload_extension(value, name)
+        return super(CustomTOPUP, self)._overload_extension(value, name)
 
     def _get_encfilename(self):
         out_file = os.path.join(os.getcwd(), "acquisition_encfile.txt")

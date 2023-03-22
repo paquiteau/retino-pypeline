@@ -11,7 +11,7 @@ from retino.workflows.tools import func2node, _setup_matlab, _get_num_thread
 
 from retino.interfaces.denoise import NoiseStdMap
 from retino.interfaces.tools import Mask
-from retino.interfaces.topup import myTOPUP
+from retino.interfaces.topup import CustomTOPUP
 
 from retino.interfaces.motion import (
     ApplyMotion,
@@ -32,7 +32,7 @@ def realign_task(matlab_cmd=None, name="realign"):
 
 def topup_task(name="topup", base_dir=None):
     """Topup Task."""
-    topup = Node(myTOPUP(), name=name, base_dir=base_dir)
+    topup = Node(CustomTOPUP(), name=name, base_dir=base_dir)
     topup.inputs.fwhm = 0
     topup.inputs.subsamp = 1
     topup.inputs.out_base = "topup_out"
