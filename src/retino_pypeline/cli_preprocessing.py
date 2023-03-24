@@ -1,12 +1,12 @@
 """CLI for retino_pypeline preprocessing."""
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
-from retino_pypeline.interfaces.denoise import DenoiserParameters
+from retino_pypeline.interfaces.denoise import DenoiseParameters
 from retino_pypeline.workflows.preprocessing import (
     NoisePreprocManager,
-    RetinoPreprocessingManager,
+    RetinotopyPreprocessingManager,
 )
 
 
@@ -20,21 +20,21 @@ def main(cfg: DictConfig) -> None:
         noise_prep_mgr.run(
             wf,
             multi_proc=True,
-            sub_id=cfg.sub,
-            task=cfg.task,
+            sub_id=cfg.dataset.sub,
+            task=cfg.dataset.task,
             sequence=cfg.dataset.sequence,
         )
 
-    prep_mgr = RetinoPreprocessingManager(cfg.dataset.data_dir, cfg.dataset.tmp_dir)
+    prep_mgr = RetinotopyPreprocessingManager(cfg.dataset.data_dir, cfg.dataset.tmp_dir)
 
     wf = prep_mgr.get_workflow(cfg.build_code)
     prep_mgr.run(
         wf,
         multi_proc=True,
-        sub_id=cfg.sub,
-        task=cfg.task,
+        sub_id=cfg.dataset.sub,
+        task=cfg.dataset.task,
         sequence=cfg.dataset.sequence,
-        denoise_str=DenoiserParameters.get_str(cfg.denoiser),
+        denoise_str=DenoiseParameters.get_str(**OmegaConf.to_container(cfg.denoiser)),
     )
 
 
