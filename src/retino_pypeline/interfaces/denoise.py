@@ -65,7 +65,14 @@ class DenoiseParameters:
     def pretty_name(self):
         if self.method:
             name = self.method
-            name += f"_{self.patch_shape}_{self.patch_overlap}_{self.recombination[0]}"
+            for attr in [
+                "patch_shape",
+                "patch_overlap",
+                "recombination",
+                "mask_threshold",
+            ]:
+                if getattr(self, attr):
+                    name += f"_{getattr(self, attr)}"
         else:
             name = "noisy"
         return name
@@ -74,6 +81,10 @@ class DenoiseParameters:
     def pretty_par(self):
         name = f"{self.patch_shape}_{self.patch_overlap}{self.recombination[0]}"
         return name
+
+    @classmethod
+    def get_str(cls, **kwargs):
+        return cls(**kwargs).pretty_name
 
     @classmethod
     def from_str(self, config_str):
@@ -97,7 +108,7 @@ class DenoiseParameters:
                 d.patch_overlap = int(conf.pop(0))
             if conf:
                 c = conf.pop(0)
-                d.recombination = "weighted" if c == "w" else "center"
+                d.recombination = c
             if conf:
                 d.mask_threshold = conf.pop(0)
             return d
