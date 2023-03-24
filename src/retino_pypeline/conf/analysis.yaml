@@ -1,0 +1,6 @@
+defaults:
+  - dataset: neurospin
+  - denoiser: default
+
+tsnr: false
+phase_map: true
