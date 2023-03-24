@@ -29,14 +29,14 @@ dev = ["black", "isort"]
 homepage = "https://github.com/paquiteau/retino-pypeline"
 
 [project.scripts]
-retino-prep = "retino.cli.preprocessing:main_cli"
-retino-glm = "retino.cli.analysis:main_cli"
+retino-prep = "retino_pypeline.cli_preprocessing:main"
+retino-glm = "retino_pypeline.cli_analysis:main"
 
 [build-system]
 requires = ["setuptools","setuptools_scm", "wheel"]
 
 [tool.setuptools.package-data]
-retino = ["libs/NORDIC_Raw/*.m"]
+retino_pypeline = ["src/retino_pypeline/libs/NORDIC_Raw/*.m"]
 
 # Formatting using black.
 [tool.black]
