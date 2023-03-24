@@ -9,3 +9,5 @@ crash*.pklz
 
 outputs/
 multirun/
+
+__pycache__

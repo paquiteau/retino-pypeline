@@ -18,6 +18,7 @@ dependencies = [
 "tqdm",
 "nipy",
 "scikit-image",
+"patch-denoise",
 "hydra-core",
 "hydra-callbacks"
 ]

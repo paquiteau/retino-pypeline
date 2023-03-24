@@ -2,4 +2,5 @@ data_dir: "/neurospin/optimed/pierre-antoine/dataset/data"
 tmp_dir: "/mnt/data/tmp"
 
 sub: 1
+sequence: "EPI3D"
 task: "Clockwise"  # AntiClockwise
