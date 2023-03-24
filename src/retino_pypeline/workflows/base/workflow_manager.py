@@ -107,6 +107,8 @@ class WorkflowManager:
         inputnode.iterables = []
         for key, iterable in kwargs.items():
             if iterable is not None:
+                if not isinstance(iterable, (list, tuple)):
+                    iterable = [iterable]
                 inputnode.iterables.append((key, iterable))
         return wf
 
