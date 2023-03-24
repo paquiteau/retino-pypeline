@@ -1,0 +1,6 @@
+data_dir: "/home/pac/gits/nsp/data/dataset_retino/data/"
+tmp_dir: "/home/pac/gits/nsp/data/dataset_retino/data/"
+
+sub: 99 # sub_99 is for testing purposes (5 temporal frame, easy to load and save.)
+sequence: "EPI3D"
+task: "Clockwise"  # AntiClockwise
