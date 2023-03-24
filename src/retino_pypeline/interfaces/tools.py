@@ -15,7 +15,12 @@ from nipype.interfaces.base import (
 
 from skimage.morphology import convex_hull_image
 from skimage.filters import threshold_otsu
-from nipy.labs.mask import compute_mask
+
+NIPY_AVAILABLE = True
+try:
+    from nipy.labs.mask import compute_mask
+except Exception:
+    NIPY_AVAILABLE = False
 
 
 class MaskInputSpec(BaseInterfaceInputSpec):
@@ -59,7 +64,7 @@ class Mask(SimpleInterface):
             mask = np.zeros(avg.shape, dtype=bool)
             for i in range(avg.shape[-1]):
                 mask[..., i] = avg[..., i] > threshold_otsu(avg[..., i])
-        elif self.inputs.method == "nipy":
+        elif self.inputs.method == "nipy" and NIPY_AVAILABLE:
             mask = np.uint8(compute_mask(avg))
 
         if self.inputs.convex_mask:

@@ -16,7 +16,7 @@ from nipype.interfaces.base import (
 from dataclasses import dataclass
 from nipype.utils.filemanip import split_filename
 
-from denoiser.denoise import (
+from patch_denoise.denoise import (
     hybrid_pca,
     mp_pca,
     nordic,
@@ -24,7 +24,7 @@ from denoiser.denoise import (
     raw_svt,
     adaptive_thresholding,
 )
-from denoiser.space_time.utils import estimate_noise
+from patch_denoise.space_time.utils import estimate_noise
 from nipype.interfaces.matlab import MatlabCommand, MatlabInputSpec
 
 DENOISER_MAP = {
@@ -110,7 +110,7 @@ class DenoiseParameters:
                 c = conf.pop(0)
                 d.recombination = c
             if conf:
-                d.mask_threshold = conf.pop(0)
+                d.mask_threshold = int(conf.pop(0))
             return d
 
 
