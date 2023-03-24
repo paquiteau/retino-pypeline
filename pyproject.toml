@@ -18,6 +18,8 @@ dependencies = [
 "tqdm",
 "nipy",
 "scikit-image",
+"hydra-core",
+"hydra-callbacks"
 ]
 
 [project.optional-dependencies]
