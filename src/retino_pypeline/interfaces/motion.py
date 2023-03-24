@@ -10,7 +10,7 @@ from nipype.interfaces.base import (
     TraitedSpec,
 )
 
-from retino.tools.motion import apply_motion
+from retino_pypeline.tools.motion import apply_motion
 
 
 class ApplyMotionInputSpec(BaseInterfaceInputSpec):

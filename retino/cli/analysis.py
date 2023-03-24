@@ -17,7 +17,7 @@ def get_parser():
 
 def analyse(ns):
     """Perform analysis."""
-    from retino.workflows.analysis import RetinoAnalysisWorkflowManager
+    from retino_pypelineworkflows.analysis import RetinoAnalysisWorkflowManager
 
     mgr = RetinoAnalysisWorkflowManager(ns.dataset, ns.tmpdir)
     print(ns)
@@ -35,7 +35,7 @@ def analyse(ns):
 
 def tsnr(ns):
     """Compute tSNR map."""
-    from retino.workflows.analysis import FirstLevelStats
+    from retino_pypeline.workflows.analysis import FirstLevelStats
 
     mgr = FirstLevelStats(ns.dataset, ns.tmpdir)
     print(ns)

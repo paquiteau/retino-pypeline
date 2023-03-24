@@ -7,13 +7,13 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.spm as spm
 from nipype import Function, IdentityInterface, Node, Workflow
 
-from retino.workflows.tools import func2node, _setup_matlab, _get_num_thread
+from retino_pypeline.workflows.tools import func2node, _setup_matlab, _get_num_thread
 
-from retino.interfaces.denoise import NoiseStdMap
-from retino.interfaces.tools import Mask
-from retino.interfaces.topup import CustomTOPUP
+from retino_pypeline.interfaces.denoise import NoiseStdMap
+from retino_pypeline.interfaces.tools import Mask
+from retino_pypeline.interfaces.topup import CustomTOPUP
 
-from retino.interfaces.motion import (
+from retino_pypeline.interfaces.motion import (
     ApplyMotion,
     MagPhase2RealImag,
 )
@@ -103,7 +103,10 @@ def conditional_topup_task(name):
     def run_topup(sequence, data, data_opposite):
         from nipype.interfaces import fsl
         from nipype import Node
-        from retino.workflows.preprocessing.nodes import topup_task, applytopup_task
+        from retino_pypeline.workflows.preprocessing.nodes import (
+            topup_task,
+            applytopup_task,
+        )
         import os
 
         base_dir = os.getcwd()
@@ -210,9 +213,11 @@ def cond_denoise_task(name):
     """
 
     def cond_node(denoise_str, mask, noise_std_map, data, data_phase=None, motion=None):
-        from retino.interfaces.denoise import PatchDenoise, NORDICDenoiser
-        from retino.interfaces.motion import RealImag2MagPhase
-        from retino.workflows.preprocessing.nodes import _apply_cplx_realignment
+        from retino_pypeline.interfaces.denoise import PatchDenoise, NORDICDenoiser
+        from retino_pypeline.interfaces.motion import RealImag2MagPhase
+        from retino_pypeline.workflows.preprocessing.nodes import (
+            _apply_cplx_realignment,
+        )
 
         # denoise string is defined as method-name_patch-size_patch-overlap
         code = denoise_str.split("_")

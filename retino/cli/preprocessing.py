@@ -2,7 +2,7 @@
 
 """Script to run preprocessing workflow."""
 
-from retino.cli.base import base_parser, get_namespace, TASKS
+from retino_pypeline.cli.base import base_parser, get_namespace, TASKS
 
 
 def get_parser():
@@ -27,7 +27,7 @@ def get_parser():
 
 def noise_preprocessing(ns):
     """Perform preprocessing of noise data."""
-    from retino.workflows.preprocessing import NoisePreprocManager
+    from retino_pypelineworkflows.preprocessing import NoisePreprocManager
 
     noise_prep_mgr = NoisePreprocManager(ns.dataset, ns.tmpdir)
     noise_prep_wf = noise_prep_mgr.get_workflow()
@@ -43,7 +43,7 @@ def noise_preprocessing(ns):
 
 def preprocessing(ns):
     """Perform preprocessing of data."""
-    from retino.workflows.preprocessing import RetinotopyPreprocessingManager
+    from retino_pypelineworkflows.preprocessing import RetinotopyPreprocessingManager
 
     prep_mgr = RetinotopyPreprocessingManager(ns.dataset, ns.tmpdir)
     for bc in ns.build_code:

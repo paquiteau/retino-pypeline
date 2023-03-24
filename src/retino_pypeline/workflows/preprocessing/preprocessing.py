@@ -7,7 +7,7 @@ the denoising methods are provided.
 
 """
 
-from retino.workflows.preprocessing.nodes import (
+from retino_pypeline.workflows.preprocessing.nodes import (
     cond_denoise_task,
     conditional_topup_task,
     coregistration_task,

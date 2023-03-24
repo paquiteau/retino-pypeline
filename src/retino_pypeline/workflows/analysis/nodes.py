@@ -1,8 +1,8 @@
 """Create Node for analysis workflow."""
 from nipype import Node
 
-from retino.interfaces.glm import DesignMatrixRetino, ContrastRetino, PhaseMap
-from retino.interfaces.tools import TSNR
+from retino_pypeline.interfaces.glm import DesignMatrixRetino, ContrastRetino, PhaseMap
+from retino_pypeline.interfaces.tools import TSNR
 
 from ..tools import func2node
 
@@ -31,7 +31,7 @@ def cond_design_matrix_node(n_cycles, clockwise, extra_name=""):
         clockwise_rotation=True,
         preproc_code="v",
     ):
-        from retino.interfaces.glm import DesignMatrixRetino
+        from retino_pypeline.interfaces.glm import DesignMatrixRetino
 
         dm = DesignMatrixRetino(
             data_file=data_file,
@@ -70,7 +70,7 @@ def contrast_glob_node():
         volumetric_tr,
         noise_model="ar1",
     ):
-        from retino.interfaces.glm import ContrastRetino
+        from retino_pypeline.interfaces.glm import ContrastRetino
 
         contrast = ContrastRetino()
         contrast.inputs.fmri_timeseries = [fmri_clock, fmri_anticlock]

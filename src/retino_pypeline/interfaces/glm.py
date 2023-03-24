@@ -16,7 +16,11 @@ from nipype.interfaces.base import (
 )
 from nipype.utils.filemanip import split_filename
 
-from retino.tools.glm import get_contrast_zscore, glm_phase_map, make_design_matrix
+from retino_pypeline.tools.glm import (
+    get_contrast_zscore,
+    glm_phase_map,
+    make_design_matrix,
+)
 
 
 class DesignMatrixRetinoInputSpec(BaseInterfaceInputSpec):
