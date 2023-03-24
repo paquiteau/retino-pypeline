@@ -5,3 +5,7 @@ tmp/
 build/
 *.egg-info/
 
+crash*.pklz
+
+outputs/
+multirun/
