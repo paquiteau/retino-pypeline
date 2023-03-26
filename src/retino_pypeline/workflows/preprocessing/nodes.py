@@ -9,7 +9,7 @@ from nipype import Function, IdentityInterface, Node, Workflow
 
 from retino_pypeline.workflows.tools import func2node, _setup_matlab, _get_num_thread
 
-from retino_pypeline.interfaces.denoise import NoiseStdMap
+from patch_denoise.bindings.nipype import NoiseStdMap
 from retino_pypeline.interfaces.tools import Mask
 from retino_pypeline.interfaces.topup import CustomTOPUP
 
@@ -214,7 +214,9 @@ def cond_denoise_task(name):
     """
 
     def cond_node(denoise_str, mask, noise_std_map, data, data_phase=None, motion=None):
-        from retino_pypeline.interfaces.denoise import PatchDenoise, NORDICDenoiser
+
+        from retino_pypeline.interfaces.nordic import NORDICDenoiser
+        from patch_denoise.bindings.nipype import PatchDenoise
         from retino_pypeline.interfaces.motion import RealImag2MagPhase
         from retino_pypeline.workflows.preprocessing.nodes import (
             _apply_cplx_realignment,
