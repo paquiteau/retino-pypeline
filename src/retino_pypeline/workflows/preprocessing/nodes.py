@@ -2,7 +2,7 @@
 
 Some Nodes are implemented as Nipype workflow but don't worry about that.
 """
-
+import os
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.spm as spm
 from nipype import Function, IdentityInterface, Node, Workflow
@@ -19,14 +19,15 @@ from retino_pypeline.interfaces.motion import (
 )
 
 
-def realign_task(matlab_cmd=None, name="realign"):
+def realign_task(matlab_cmd=None, name="realign", spm_path=None):
     """Create a realign node."""
-    realign = Node(spm.Realign(), name=name)
+    spm_path = spm_path or os.env.get("SPM_PATH", None)
+    realign = Node(spm.Realign(paths=spm_path), name=name)
     _setup_matlab(realign)
     realign.inputs.separation = 1.0
     realign.inputs.fwhm = 1.0
     realign.inputs.register_to_mean = False
-    realign.n_procs = 3
+    realign.n_procs = _get_num_thread()
     return realign
 
 
