@@ -131,61 +131,35 @@ def run_topup(data, data_opposite):
     return res.outputs.out_corrected
 
 
-def coregistration_task(name, working_dir=None, matlab_cmd=None):
-    """Coregistration Node.
+def conditional_topup_task(name):
+    """Return a Node with the conditional execution of a topup workflow."""
 
-    Input: in.func, in.anat
-    Output: out.coreg_func, out.coreg_anat
-    """
-    in_node = Node(IdentityInterface(fields=["func", "anat"]), name="in")
-    out_node = Node(IdentityInterface(fields=["coreg_func", "coreg_anat"]), name="out")
+    def _func(sequence, data, data_opposite):
+        from retino_pypeline.workflows.preprocessing.nodes import run_topup
 
-    roi_coreg = Node(fsl.ExtractROI(t_min=0, t_size=1), name="roi_coreg")
-    roi_coreg.inputs.output_type = "NIFTI"
+        if "EPI" in sequence:
+            return run_topup(data, data_opposite)
+        else:
+            return data
 
-    _setup_matlab(None)
-    coreg = Node(spm.Coregister(), name="coregister")
-    coreg.inputs.separation = [1, 1]
-
-    coreg_wf = Workflow(name=name, base_dir=working_dir)
-
-    coreg_wf.connect(
-        [
-            (in_node, roi_coreg, [("func", "in_file")]),
-            (in_node, coreg, [("anat", "source"), ("func", "apply_to_files")]),
-            (roi_coreg, coreg, [("roi_file", "target")]),
-            (
-                coreg,
-                out_node,
-                [
-                    ("coregistered_files", "coreg_func"),
-                    ("coregistered_source", "coreg_anat"),
-                ],
-            ),
-        ]
-    )
-    return coreg_wf
+    return func2node(_func, output_names=["out"], name=name)
 
 
-def _apply_cplx_realignment(data, data_phase, motion=None):
+def run_coregistration(name, func, anat):
 
-    mp2ri = MagPhase2RealImag()
-    mp2ri.inputs.mag_file = data
-    mp2ri.inputs.phase_file = data_phase
-    results = mp2ri.run()
-    real_file = results.outputs.real_file
-    imag_file = results.outputs.imag_file
-    if motion is not None:
-        applymotion = ApplyMotion()
-        applymotion.inputs.in_file = real_file
-        applymotion.inputs.motion_file = motion
-        real_file = applymotion.run().outputs.out_file
+    extract_roi = Node(fsl.ExtractROI(t_min=0, t_size=1), name="roi_coreg")
+    extract_roi.inputs.in_files = func
+    extract_roi.inputs.output_type = "NIFTI"
+    res = extract_roi.run()
 
-        applymotion.inputs.in_file = imag_file
-        applymotion.inputs.motion_file = motion
-        imag_file = applymotion.run().outputs.out_file
+    coreg = Node(fsl.FLIRT(dof=6), name="coregister")
+    coreg.inputs.reference = anat
+    coreg.inputs.in_file = res.outputs.roi_file
 
-    return real_file, imag_file
+    res = coreg.run()
+    return res.outputs.out_file
+
+
 
 
 def cond_denoise_task(name):
