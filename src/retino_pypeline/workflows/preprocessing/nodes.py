@@ -98,52 +98,37 @@ def alltopup_task(name="", base_dir=None):
     return topup_wf
 
 
-def conditional_topup_task(name):
-    """Return a Node with the conditional execution of a topup workflow."""
+def run_topup(data, data_opposite):
+    """A Function running the topup steps sequentially."""
+    base_dir = os.getcwd()
 
-    def run_topup(sequence, data, data_opposite):
-        from nipype.interfaces import fsl
-        from nipype import Node
-        from retino_pypeline.workflows.preprocessing.nodes import (
-            topup_task,
-            applytopup_task,
-        )
-        import os
+    roi_ap = Node(
+        fsl.ExtractROI(t_min=3, t_size=1),
+        name="roi_ap",
+        base_dir=base_dir,
+    )
+    roi_ap.inputs.in_file = data
+    res = roi_ap.run()
+    merger = Node(
+        fsl.Merge(dimension="t"),
+        name="merger",
+        base_dir=base_dir,
+    )
+    merger.inputs.in_files = [data_opposite, res.outputs.roi_file]
+    res = merger.run()
 
-        base_dir = os.getcwd()
+    topup = topup_task("topup", base_dir=base_dir)
+    applytopup = applytopup_task("applytopup", base_dir=base_dir)
+    topup.inputs.in_file = res.outputs.merged_file
+    res = topup.run()
 
-        if "EPI" in sequence:
-            roi_ap = Node(
-                fsl.ExtractROI(t_min=3, t_size=1),
-                name="roi_ap",
-                base_dir=base_dir,
-            )
-            roi_ap.inputs.in_file = data
-            res = roi_ap.run()
-            merger = Node(
-                fsl.Merge(dimension="t"),
-                name="merger",
-                base_dir=base_dir,
-            )
-            merger.inputs.in_files = [data_opposite, res.outputs.roi_file]
-            res = merger.run()
+    applytopup.inputs.in_topup_fieldcoef = res.outputs.out_fieldcoef
+    applytopup.inputs.in_topup_movpar = res.outputs.out_movpar
+    applytopup.inputs.encoding_file = res.outputs.out_enc_file
+    applytopup.inputs.in_files = data
 
-            topup = topup_task("topup", base_dir=base_dir)
-            applytopup = applytopup_task("applytopup", base_dir=base_dir)
-            topup.inputs.in_file = res.outputs.merged_file
-            res = topup.run()
-
-            applytopup.inputs.in_topup_fieldcoef = res.outputs.out_fieldcoef
-            applytopup.inputs.in_topup_movpar = res.outputs.out_movpar
-            applytopup.inputs.encoding_file = res.outputs.out_enc_file
-            applytopup.inputs.in_files = data
-
-            res = applytopup.run()
-            return res.outputs.out_corrected
-        else:
-            return data
-
-    return func2node(run_topup, output_names=["out"], name=name)
+    res = applytopup.run()
+    return res.outputs.out_corrected
 
 
 def coregistration_task(name, working_dir=None, matlab_cmd=None):
