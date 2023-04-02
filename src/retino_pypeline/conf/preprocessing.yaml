@@ -1,8 +1,9 @@
 defaults:
   - dataset: neurospin
   - denoiser: default
+  - nipype: nipype
+  - nipype_plugin: multiproc
 
-run_noise: true
 build_code: "rd"
 sub: 1
 task: "Clockwise"  # AntiClockwise

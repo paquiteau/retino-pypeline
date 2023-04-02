@@ -1,0 +1,3 @@
+name: "SLURMGraph"
+args:
+  sbatch_args: null

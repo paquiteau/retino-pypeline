@@ -1,0 +1,36 @@
+#  https://miykael.github.io/nipype_tutorial/notebooks/basic_execution_configuration.html
+logging:
+  workflow_level: "INFO"
+  utils_level: "INFO"
+  interface_level: "INFO"
+  log_to_file: true # nipype default is false
+  log_directory: ${hydra.run.dir}
+  log_size: 254000
+  log_rotate: 4
+
+execution:
+  plugin: "Linear"
+  stop_on_first_crash: false
+  stop_on_first_rerun: false
+  hash_method: "timestamp"
+  keep_inputs: false
+  single_thread_matlab: false # nipype default is true
+  display_variable: null
+  remove_unnecessary_outputs: true
+  try_hard_link_datasink: true
+  use_relative_paths: false
+  local_hash_check: true
+  job_finished_timeout: 5
+  remove_node_directories: false
+  # stop_on_unknown_version
+  parameterize_dirs: true
+  poll_sleep_duration: 2
+  # xvfb_max_wait
+  crashfile_format: "txt"  # nipype default pklz
+
+
+monitoring:
+  enabled : false
+  sample_frequency: 1 # sample frequency in second
+  summary_file: null
+  summary_append: true

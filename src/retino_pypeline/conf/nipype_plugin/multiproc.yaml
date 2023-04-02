@@ -1,0 +1,3 @@
+name: "MultiProc"
+args:
+  n_procs: -1
