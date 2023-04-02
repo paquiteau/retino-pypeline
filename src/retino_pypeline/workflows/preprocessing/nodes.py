@@ -230,6 +230,89 @@ def denoise_complex_task(name="denoise_mag"):
     return node
 
 
+def realign_complex_task(name="denoise_complex_preprocess"):
+    """Prepare the file for the complex denoising"""
+
+    def realign_complex(data, data_phase, trans_files, num_threads=1):
+        from nipype import Node, Workflow, MapNode
+        from retino_pypeline.interfaces.motion import (
+            ApplyXfm4D,
+            MagPhase2RealImag,
+            RealImag2MagPhase,
+        )
+        import nipype.interfaces.fsl as fsl
+
+        mp2ri = Node(MagPhase2RealImag(), name="mp2ri")
+        ri2mp = Node(MagPhase2RealImag(), name="mp2ri")
+
+        mp2ri.inputs.mag_file = data
+        mp2ri.inputs.phase_file = data_phase
+
+        extract_ref = Node(fsl.ExtractROI(t_min=0, t_size=1), name="extract_ref")
+
+        split_real = Node(fsl.Split(dimension="t"), name="split_real")
+        split_imag = Node(fsl.Split(dimension="t"), name="split_imag")
+        merge_real = Node(fsl.Merge(dimension="t"), name="merge_real")
+        merge_imag = Node(fsl.Merge(dimension="t"), name="merge_imag")
+
+        applyxfm_real = MapNode(
+            ApplyXfm4D(),
+            iterfield=[
+                "in_file",
+                "ref_vol",
+                "trans_file",
+            ],
+            name="applyxfm",
+        )
+        applyxfm_real.inputs.single_matrix = True
+        applyxfm_real.inputs.trans_file = trans_files
+        applyxfm_imag = applyxfm_real.clone("applyxfm_imag")
+
+        for n in [
+            extract_ref,
+            split_real,
+            split_imag,
+            merge_real,
+            merge_imag,
+            applyxfm_real,
+            applyxfm_imag,
+        ]:
+            setattr(n.inputs, "n_procs", 1)
+
+        wf = Workflow(name=name + "_wf")
+        wf.connect(
+            [
+                (mp2ri, extract_ref, [("real_file", "in_file")]),
+                (extract_ref, applyxfm_real, [("roi_file", "ref_vol")]),
+                (extract_ref, applyxfm_imag, [("roi_file", "ref_vol")]),
+                (mp2ri, split_real, [("real_file", "in_file")]),
+                (mp2ri, split_imag, [("imag_file", "in_file")]),
+                (split_real, applyxfm_real, [("out_files", "in_file")]),
+                (split_imag, applyxfm_imag, [("out_files", "in_file")]),
+                (applyxfm_real, merge_real, [("out_file", "in_files")]),
+                (applyxfm_imag, merge_imag, [("out_files", "in_files")]),
+                (merge_real, ri2mp, [("merged_file", "real_file")]),
+                (merge_imag, ri2mp, [("merged_file", "imag_file")]),
+            ]
+        )
+        wf.run(plugin="MultiProc", plugin_args={"n_procs": num_threads})
+        # Return real, imag, mag and phase.
+        return (
+            wf.ouputs.merge_real.out_file,
+            wf.ouputs.merge_imag.out_file,
+            wf.ouputs.ri2mp.mag_file,
+            wf.ouputs.ri2mp.phase_file,
+        )
+
+    return Node(
+        Function(
+            realign_complex,
+            output_names=["real_file", "imag_file", "mag_file", "phase_file"],
+        ),
+        name=name,
+    )
+
+
 def mask_node(name):
     """Mask Node."""
     return Node(
@@ -245,3 +328,53 @@ def mask_node(name):
 def noise_std_node(name):
     """Estimator for noise std."""
     return Node(NoiseStdMap(fft_scale=100, block_size=5), name=name)
+
+
+def apply_xfm_node(name="apply_xfm"):
+    # Create an embedded workflow, and run it inside the node.
+    def vectorized_applyxfm(in_file, ref_vol, trans_file):
+
+        from retino_pypeline.interfaces.motion import ApplyXfm4D
+        from nipype import MapNode, Workflow
+
+        mnode = MapNode(ApplyXfm4D(), iterfield=["in_file"], name="applyxfm")
+        mnode.inputs.single_matrix = True
+        mnode.inputs.in_file = in_file
+        mnode.inputs.ref_vol = ref_vol
+        mnode.inputs.trans_file = trans_file
+        mnode.n_procs = 1
+
+        wf = Workflow(name="vectorize_apply")
+        wf.add_nodes([mnode])
+        wf.run(plugin="MultiProc", plugin_args={"n_procs": 10})
+        return wf.outputs.applyxfm.out_file
+
+    apply_matrix = Node(
+        Function(function=vectorized_applyxfm, output_names="out_files"),
+        name="apply_xfm",
+    )
+
+    return apply_matrix
+
+
+def realign_fsl_task(name="realign_fsl"):
+    """Realign using FSL MCFLIRT."""
+    return Node(
+        fsl.MCFLIRT(
+            save_plots=True,
+            save_mats=True,
+            save_rms=True,
+            interpolation="spline",
+            ref_vol=0,
+            cost="mutualinfo",
+            bins=256,
+            dof=6,
+            mean_vol=True,
+            output_type="NIFTI_GZ",
+        ),
+        name=name,
+    )
+
+
+def mp2ri_task(name="mp2ri"):
+    return Node(MagPhase2RealImag(), name=name)
