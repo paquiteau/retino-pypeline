@@ -192,8 +192,8 @@ class MagPhase2RealImag(SimpleInterface):
 
         pha_min = np.min(pha_data)
         pha_max = np.max(pha_data)
-        # normalizing to -pi, pi
-        pha_data = (2 * np.pi * (pha_data - pha_min) / (pha_max - pha_min)) + np.pi
+        # normalizing to [0, 2*pi]
+        pha_data = 2 * np.pi * (pha_data - pha_min) / (pha_max - pha_min)
 
         real_data = mag_data * np.cos(pha_data)
         imag_data = mag_data * np.sin(pha_data)
