@@ -160,45 +160,16 @@ def run_coregistration(name, func, anat):
     return res.outputs.out_file
 
 
+def denoise_magnitude_task(name="denoise_mag"):
+    def denoise(denoise_str, mask, noise_std_map, data):
 
-
-def cond_denoise_task(name):
-    """Smart denoising node.
-
-    This node will:
-    1) select the proper interface for denoising
-    2) use complex valued data if available
-    3) apply motion correction to complex data if available.
-
-    """
-
-    def cond_node(denoise_str, mask, noise_std_map, data, data_phase=None, motion=None):
-
-        from retino_pypeline.interfaces.nordic import NORDICDenoiser
         from patch_denoise.bindings.nipype import PatchDenoise
-        from retino_pypeline.interfaces.motion import RealImag2MagPhase
-        from retino_pypeline.workflows.preprocessing.nodes import (
-            _apply_cplx_realignment,
-        )
+        from retino_pypeline.interfaces.nordic import NORDICDenoiser
 
-        # denoise string is defined as method-name_patch-size_patch-overlap
         code = denoise_str.split("_")
         if code[0] == "nordic-mat":
             denoiser = NORDICDenoiser()
-            if data_phase is not None and motion is not None:
-                real_file, imag_file = _apply_cplx_realignment(data, data_phase, motion)
-                ri2mp = RealImag2MagPhase()
-                ri2mp.inputs.real_file = real_file
-                ri2mp.inputs.imag_file = imag_file
-                results = ri2mp.run().outputs
-
-                denoiser.inputs.file_mag = results.mag_file
-                denoiser.inputs.file_phase = results.phase_file
-            elif data_phase is not None:
-                denoiser.inputs.file_mag = data
-                denoiser.inputs.file_phase = data_phase
-            else:
-                denoiser.inputs.file_mag = data
+            denoiser.inputs.file_mag = data
             denoiser.inputs.arg_kernel_size_PCA = int(code[1])
             if int(code[2]) > 0:
                 denoiser.inputs.arg_NORDIC_patch_overlap = int(code[1]) / int(code[2])
@@ -206,24 +177,54 @@ def cond_denoise_task(name):
                 denoiser.inputs.arg_NORDIC_patch_overlap = 1
             results = denoiser.run()
             return results.outputs.file_out_mag, noise_std_map
-
-        denoiser = PatchDenoise()
-        if data_phase is not None:
-            real_file, imag_file = _apply_cplx_realignment(data, data_phase, motion)
-            denoiser.inputs.in_real = real_file
-            denoiser.inputs.in_imag = imag_file
         else:
+            denoiser = PatchDenoise()
             denoiser.inputs.in_mag = data
-        denoiser.inputs.denoise_str = denoise_str
-        denoiser.inputs.mask = mask
-        denoiser.inputs.noise_std_map = noise_std_map
+            denoiser.inputs.denoise_str = denoise_str
+            denoiser.inputs.mask = mask
+            denoiser.inputs.noise_std_map = noise_std_map
         results = denoiser.run()
         return results.outputs.denoised_file, results.outputs.noise_std_map
 
     node = func2node(
-        cond_node,
-        output_names=["denoised_file", "noise_std_map"],
-        name=name,
+        denoise, output_names=["denoised_file", "noise_std_map"], name=name
+    )
+    node.n_procs = _get_num_thread()
+    return node
+
+
+def denoise_complex_task(name="denoise_mag"):
+    def denoise(
+        denoise_str, mask, noise_std_map, real_file, imag_file, mag_file, phase_file
+    ):
+
+        from patch_denoise.bindings.nipype import PatchDenoise
+        from retino_pypeline.interfaces.nordic import NORDICDenoiser
+
+        code = denoise_str.split("_")
+        if code[0] == "nordic-mat":
+            denoiser = NORDICDenoiser()
+            denoiser.inputs.file_mag = mag_file
+            denoiser.inputs.file_phase = phase_file
+            denoiser.inputs.arg_kernel_size_PCA = int(code[1])
+            if int(code[2]) > 0:
+                denoiser.inputs.arg_NORDIC_patch_overlap = int(code[1]) / int(code[2])
+            else:
+                denoiser.inputs.arg_NORDIC_patch_overlap = 1
+            results = denoiser.run()
+            return results.outputs.file_out_mag, noise_std_map
+        else:
+            denoiser = PatchDenoise()
+            denoiser.inputs.in_real = real_file
+            denoiser.inputs.in_imag = imag_file
+            denoiser.inputs.denoise_str = denoise_str
+            denoiser.inputs.mask = mask
+            denoiser.inputs.noise_std_map = noise_std_map
+        results = denoiser.run()
+        return results.outputs.denoised_file, results.outputs.noise_std_map
+
+    node = func2node(
+        denoise, output_names=["denoised_file", "noise_std_map"], name=name
     )
     node.n_procs = _get_num_thread()
     return node
