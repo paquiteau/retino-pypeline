@@ -34,7 +34,7 @@ _REGEX_SINKER = [
 ]
 
 
-def add_coregistration(wf, prev_node, func_out):
+def add_coregistration(wf, prev_node, func_out) -> tuple[Node, str]:
     extract_first = Node(fsl.ExtractROI(), name="extract_first")
     extract_first.inputs.t_min = 0
     extract_first.inputs.t_size = 1
