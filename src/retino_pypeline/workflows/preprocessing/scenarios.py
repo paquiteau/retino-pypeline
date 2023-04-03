@@ -91,21 +91,27 @@ class BasePreprocessingScenario:
         input_node = input_task(self.input_fields)
         sinker = sinker_task(self.base_data_dir)
 
+        template = {
+            "anat": "sub_%02i/anat/*_T1.nii",
+            "data": f"sub_%02i/func/*{self.sequence}_%sTask.nii",
+            "data_phase": f"sub_%02i/func/*{self.sequence}_%sTask_phase.nii",
+            "noise_std_map": f"sub_%02i/preproc_extra/*{self.sequence}-0v_std.nii",
+            "mask": f"sub_%02i/preproc_extra/*{self.sequence}_%sTask_mask.nii",
+        }
+        template_args = {
+            "anat": [["sub_id"]],
+            "data": [["sub_id", "task"]],
+            "data_phase": [["sub_id", "task"]],
+            "noise_std_map": [["sub_id"]],
+            "mask": [["sub_id", "task"]],
+        }
+
+        if self.sequence == "EPI3D":
+            template["data_opposite"] = "sub_%02i/func/*EPI3D_Clockwise_1rep_PA.nii"
+            template_args["data_opposite"] = [["sub_id"]]
         file_node = selectfile_task(
-            template={
-                "anat": "sub_%02i/anat/*_T1.nii",
-                "data": f"sub_%02i/func/*{self.sequence}_%sTask.nii",
-                "data_phase": f"sub_%02i/func/*{self.sequence}_%sTask_phase.nii",
-                "noise_std_map": f"sub_%02i/preproc_extra/*{self.sequence}-0v_std.nii",
-                "mask": f"sub_%02i/preproc_extra/*{self.sequence}_%sTask_mask.nii",
-            },
-            template_args={
-                "anat": [["sub_id"]],
-                "data": [["sub_id", "task"]],
-                "data_phase": [["sub_id", "task"]],
-                "noise_std_map": [["sub_id"]],
-                "mask": [["sub_id", "task"]],
-            },
+            template=template,
+            template_args=template_args,
             base_data_dir=self.base_data_dir,
             infields=["sub_id", "task"],
         )
