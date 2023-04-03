@@ -1,4 +1,5 @@
 """Base builder function."""
+from nipype import Node
 
 
 def add2sinker(wf, connections, folder=None):
@@ -14,7 +15,7 @@ def add2sinker(wf, connections, folder=None):
     sinker = wf.get_node("sinker")
 
     for con in connections:
-        wf.connect(wf.get_node(con[0]), con[1], sinker, f"{folder}{con[2]}")
+        wf.connect(get_node(wf, con[0]), con[1], sinker, f"{folder}{con[2]}")
 
     return wf
 
@@ -29,7 +30,10 @@ def add2wf(wf, after_node, edge_out, node, edge_in):
 
 def get_node(wf, node):
     """Get node from workflow or raise error."""
-    node_obj = wf.get_node(node)
+    if isinstance(node, Node):
+        return node
+    if isinstance(node, str):
+        node_obj = wf.get_node(node)
     if node_obj is None:
         raise ValueError(f"Node {node} not found.")
     return node_obj
