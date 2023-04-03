@@ -2,13 +2,18 @@
 """CLI for retino_pypeline preprocessing."""
 
 import hydra
+import logging
+
 from omegaconf import DictConfig, OmegaConf
 
+from nipype import config as nipype_cfg
 from patch_denoise.bindings.nipype import DenoiseParameters
 
 from retino_pypeline.workflows.preprocessing.scenarios import (
     PreprocessingWorkflowDispatcher,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="preprocessing")
@@ -21,14 +26,27 @@ def main(cfg: DictConfig) -> None:
         sequence=cfg.dataset.sequence,
     )
     dispatcher.get_workflow(cfg.build_code)
+    OmegaConf.resolve(cfg.nipype)
+    dict_conf = OmegaConf.to_container(cfg.nipype)
+    for key, val in dict_conf.items():
+        for kkey, vval in val.items():
+            nipype_cfg.set(key, kkey, str(vval))
+
+    logger.info("Resource monitoring " + ("on." nipype_cfg.nipype.monitor else "off."))
+
+    dcfg = OmegaConf.to_container(cfg)
+    # Extend the configuration to allow for multiple subjects and tasks
+    if dcfg["sub"] == "all":
+        dcfg["sub"] = [1, 2, 3, 4, 5, 6]
+    if dfcg["task"] == "both":
+        dfcg["task"] = ["Clockwise", "AntiClockwise"]
 
     dispatcher.run(
-        task=cfg.task,
-        sub_id=cfg.sub,
-        denoise_str=DenoiseParameters.get_str(**OmegaConf.to_container(cfg.denoiser)),
-        nipype_config=OmegaConf.to_container(cfg.nipype),
-        plugin=cfg.nipype_plugin.name,
-        plugin_args=OmegaConf.to_container(cfg.nipype_plugin.args),
+        task=dcfg["task"],
+        sub_id=dcfg["sub"],
+        denoise_str=DenoiseParameters.get_str(**dcfg["denoiser"]),
+        plugin=dcfg["nipype_plugin"]["name"],
+        plugin_args=dcfg["nipype_plugin"]["args"],
     )
 
 
