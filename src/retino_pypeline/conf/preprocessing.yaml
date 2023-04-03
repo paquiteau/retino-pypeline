@@ -1,7 +1,7 @@
 defaults:
-  - dataset: neurospin
-  - denoiser: default
-  - nipype: nipype
+  - dataset/neurospin
+  - denoiser/default
+  - nipype/default
   - nipype_plugin: multiproc
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
@@ -10,3 +10,10 @@ defaults:
 build_code: "rd"
 sub: 1
 task: "Clockwise"  # AntiClockwise
+
+nipype.monitoring.enabled: true
+
+hydra:
+  callbacks:
+    latest_link:
+      _target_: hydra_callbacks.LatestRunLink
