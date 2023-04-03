@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """CLI for retino_pypeline preprocessing."""
 
 import hydra
