@@ -7,7 +7,7 @@ from nipype.interfaces import fsl
 from .nodes import (
     apply_xfm_node,
     mask_node,
-    run_topup,
+    topup_node_task,
     noise_std_node,
     denoise_magnitude_task,
     denoise_complex_task,
@@ -17,7 +17,6 @@ from .nodes import (
 )
 from ..base.nodes import selectfile_task, input_task, sinker_task
 from ..base.builder import add2wf_dwim, add2wf, add2sinker
-from retino_pypeline.workflows.tools import func2node
 
 from ..tools import _getsubid, _get_num_thread
 
@@ -60,12 +59,14 @@ def add_coregistration(wf, prev_node, func_out):
     return merge, "merged_file"
 
 
-def add_topup(wf, prev_node, func_out, sequence="EPI3D"):
+def add_topup(wf, prev_node, func_out, sequence="EPI3D") -> tuple[Node, str]:
     if sequence == "EPI3D":
-        topup = func2node(run_topup, output_names=["out"], name="topup")
+        topup = topup_node_task()
         add2wf(wf, prev_node, func_out, topup, "in_file")
-
+        add2wf(wf, prev_node, func_out, topup, "data")
+        add2wf(wf, FILES_NODE, "data_opposite", topup, "data_opposite")
         return topup, "out"
+
     return prev_node, func_out
 
 
