@@ -240,7 +240,7 @@ def realign_complex_task(name="denoise_complex_preprocess"):
         import nipype.interfaces.fsl as fsl
 
         mp2ri = Node(MagPhase2RealImag(), name="mp2ri")
-        ri2mp = Node(MagPhase2RealImag(), name="mp2ri")
+        ri2mp = Node(RealImag2MagPhase(), name="mp2ri")  # TODO use fslcomplex ?
 
         mp2ri.inputs.mag_file = data
         mp2ri.inputs.phase_file = data_phase
