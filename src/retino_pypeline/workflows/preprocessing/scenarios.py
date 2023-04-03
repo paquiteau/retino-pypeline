@@ -110,7 +110,7 @@ class BasePreprocessingScenario:
         )
 
         add2wf(wf, input_node, ("sub_id", _getsubid), sinker, "container")
-        add2wf_dwim(input_node, file_node, ["sub_id", "task"])
+        add2wf_dwim(wf, input_node, file_node, ["sub_id", "task"])
 
         sinker.inputs.regexp_substitutions = _REGEX_SINKER
         self.wf = wf
