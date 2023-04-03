@@ -75,12 +75,12 @@ class BasePreprocessingScenario:
     workflow_name = "preproc"
 
     def __init__(self, base_data_dir, working_dir, sequence="EPI3D"):
-        self.base_data_dir = base_data_dir
-        self.working_dir = working_dir
-        self.sequence = sequence
-        self.wf = None
+        self.base_data_dir: str = base_data_dir
+        self.working_dir: str = working_dir
+        self.sequence: str = sequence
+        self.wf: Workflow = None
 
-    def get_workflow(self, extra_wfname=""):
+    def get_workflow(self, extra_wfname="") -> Workflow:
         """
         Add the input and sinker nodes to the workflow.
         """
@@ -138,7 +138,7 @@ class BasePreprocessingScenario:
 class RealignOnlyScenario(BasePreprocessingScenario):
     BUILDCODE = "r"
 
-    def get_workflow(self, extra_wfname=""):
+    def get_workflow(self, extra_wfname="") -> Workflow:
         to_sink = []
         wf = super().get_workflow(extra_wfname=extra_wfname)
 
@@ -163,7 +163,7 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
 
     BUILDCODE = "rd"
 
-    def get_workflow(self, extra_wfname=""):
+    def get_workflow(self, extra_wfname="") -> Workflow:
         to_sink = []
         wf = super().get_workflow(extra_wfname=extra_wfname)
         # Realign
@@ -190,7 +190,7 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
 class RealignComplexDenoiseScenario(BasePreprocessingScenario):
     BUILDCODE = "rD"
 
-    def get_workflow(self, extra_wfname=""):
+    def get_workflow(self, extra_wfname="") -> Workflow:
         to_sink = []
         wf = super().get_workflow(extra_wfname=extra_wfname)
         # Realign
@@ -235,7 +235,7 @@ class MagnitudeDenoiseRealignScenario(BasePreprocessingScenario):
 
     BUILDCODE = "dr"
 
-    def get_workflow(self, extra_wfname=""):
+    def get_workflow(self, extra_wfname="") -> Workflow:
 
         to_sink = []
         wf = super().get_workflow(extra_wfname=extra_wfname)
@@ -259,7 +259,7 @@ class MagnitudeDenoiseRealignScenario(BasePreprocessingScenario):
 class ComplexDenoiseRealignScenario(BasePreprocessingScenario):
     BUILDCODE = "Dr"
 
-    def get_workflow(self, extra_wfname=""):
+    def get_workflow(self, extra_wfname="") -> Workflow:
 
         to_sink = []
         wf = super().get_workflow(extra_wfname=extra_wfname)
@@ -306,7 +306,7 @@ class NoisePreprocessingScenario(BasePreprocessingScenario):
 
     BUILDCODE = "n"
 
-    def get_workflow(self, extra_wfname=""):
+    def get_workflow(self, extra_wfname="") -> Workflow:
 
         wf = super().get_workflow(extra_wfname=extra_wfname)
 
@@ -327,13 +327,12 @@ class BaseWorkflowDispatcher:
     """Dispatche workflow and manage them."""
 
     def __init__(self, base_data_dir, working_dir, sequence="EPI3D"):
-        self.base_data_dir = base_data_dir
-        self.working_dir = working_dir
-        self.sequence = sequence
-        self.wf = None
-        self.wf_scenario = None
+        self.base_data_dir: str = base_data_dir
+        self.working_dir: str = working_dir
+        self.sequence: str = sequence
+        self.wf: Workflow = None
+        self.wf_scenario: BasePreprocessingScenario = None
 
-    def run(self, task, sub_id, denoise_str, plugin="MultiProc", plugin_args=None):
         """Run a workflow for a given subject."""
         if self.wf is None:
             raise ValueError("Workflow is not defined.")
@@ -378,11 +377,11 @@ class PreprocessingWorkflowDispatcher(BaseWorkflowDispatcher):
     }
 
     def __init__(self, base_data_dir, working_dir, sequence="EPI3D"):
-        self.base_data_dir = base_data_dir
-        self.working_dir = working_dir
-        self.sequence = sequence
-        self.wf = None
-        self.wf_scenario = None
+        self.base_data_dir: str = base_data_dir
+        self.working_dir: str = working_dir
+        self.sequence: str = sequence
+        self.wf: Workflow = None
+        self.wf_scenario: BasePreprocessingScenario = None
 
     def get_workflow(self, scenario, extra_wfname=""):
         """Return a workflow for the given scenario."""
