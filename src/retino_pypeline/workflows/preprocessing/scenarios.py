@@ -184,6 +184,7 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
         add2wf(wf, "realign", "out_file", denoise, "data")
         add2wf(wf, FILES_NODE, "noise_std_map", denoise, "noise_std_map")
         add2wf(wf, FILES_NODE, "mask", denoise, "mask")
+        add2wf(wf, INPUT_NODE, "denoise_str", denoise, "denoise_str")
 
         prev_node, func_out = add_topup(wf, realign, "out_file", sequence=self.sequence)
 
