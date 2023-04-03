@@ -333,6 +333,15 @@ class BaseWorkflowDispatcher:
         self.wf: Workflow = None
         self.wf_scenario: BasePreprocessingScenario = None
 
+    def run(
+        self,
+        task,
+        sub_id,
+        denoise_str,
+        plugin="MultiProc",
+        plugin_args=None,
+        nipype_config=None,
+    ) -> None:
         """Run a workflow for a given subject."""
         if self.wf is None:
             raise ValueError("Workflow is not defined.")
@@ -347,7 +356,11 @@ class BaseWorkflowDispatcher:
                     iterable = [iterable]
                 inputnode.iterables.append((key, iterable))
 
+        if nipype_config is not None:
+            self.wf.config = nipype_config
         if plugin == "MultiProc":
+            if plugin_args["n_procs"] in [None, -1]:
+                plugin_args["n_procs"] = _get_num_thread()
             self.wf.run(plugin=plugin, plugin_args=plugin_args)
 
         elif plugin == "SLURMGraph":
@@ -355,7 +368,7 @@ class BaseWorkflowDispatcher:
             for node in self.wf._graph.nodes():
                 if hasattr(node, "n_procs"):
                     node.plugin_args = {"sbatch_args": f"-c {node.n_procs}"}
-
+            self.wf.run(plugin=plugin, plugin_args=plugin_args)
         elif plugin is None:
             ...
         else:

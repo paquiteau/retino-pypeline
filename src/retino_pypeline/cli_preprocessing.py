@@ -24,10 +24,11 @@ def main(cfg: DictConfig) -> None:
 
     dispatcher.run(
         task=cfg.task,
-        sub_id=cfg.sub_id,
-        denoise_str=DenoiseParameters.get_str(OmegaConf.to_container(cfg.denoise)),
-        plugin=cfg.plugin.name,
-        plugin_args=OmegaConf.to_container(cfg.plugin.args),
+        sub_id=cfg.sub,
+        denoise_str=DenoiseParameters.get_str(**OmegaConf.to_container(cfg.denoiser)),
+        nipype_config=OmegaConf.to_container(cfg.nipype),
+        plugin=cfg.nipype_plugin.name,
+        plugin_args=OmegaConf.to_container(cfg.nipype_plugin.args),
     )
 
 
