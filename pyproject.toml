@@ -20,7 +20,8 @@ dependencies = [
 "scikit-image",
 "patch-denoise",
 "hydra-core",
-"hydra-callbacks"
+"hydra-callbacks",
+"hydra_colorlog",
 ]
 
 [project.optional-dependencies]

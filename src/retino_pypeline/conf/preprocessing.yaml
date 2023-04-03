@@ -3,6 +3,9 @@ defaults:
   - denoiser: default
   - nipype: nipype
   - nipype_plugin: multiproc
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+  - _self_
 
 build_code: "rd"
 sub: 1
