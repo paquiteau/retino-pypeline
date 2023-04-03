@@ -13,10 +13,7 @@ from patch_denoise.bindings.nipype import NoiseStdMap
 from retino_pypeline.interfaces.tools import Mask
 from retino_pypeline.interfaces.topup import CustomTOPUP
 
-from retino_pypeline.interfaces.motion import (
-    ApplyMotion,
-    MagPhase2RealImag,
-)
+from retino_pypeline.interfaces.motion import MagPhase2RealImag
 
 
 def realign_task(matlab_cmd=None, name="realign", spm_path=None):
