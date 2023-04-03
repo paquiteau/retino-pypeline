@@ -71,9 +71,10 @@ def add_topup(wf, prev_node, func_out, sequence="EPI3D") -> tuple[Node, str]:
 
 
 class BasePreprocessingScenario:
+    BUILD_CODE = None
 
     input_fields = ["sub_id", "task", "denoise_str"]
-    workflow_name = "preproc"
+    WF_NAME = "preproc"
 
     def __init__(self, base_data_dir, working_dir, sequence="EPI3D"):
         self.base_data_dir: str = base_data_dir
@@ -86,7 +87,10 @@ class BasePreprocessingScenario:
         Add the input and sinker nodes to the workflow.
         """
 
-        wf = Workflow(name=self.workflow_name + extra_wfname, base_dir=self.working_dir)
+        wf = Workflow(
+            name=f"{self.WF_NAME}_{self.BUILDCODE}" + extra_wfname,
+            base_dir=self.working_dir,
+        )
 
         input_node = input_task(self.input_fields)
         sinker = sinker_task(self.base_data_dir)
@@ -186,7 +190,9 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
         add2wf(wf, FILES_NODE, "mask", denoise, "mask")
         add2wf(wf, INPUT_NODE, "denoise_str", denoise, "denoise_str")
 
-        prev_node, func_out = add_topup(wf, realign, "out_file", sequence=self.sequence)
+        prev_node, func_out = add_topup(
+            wf, denoise, "denoised_file", sequence=self.sequence
+        )
 
         to_sink.append((prev_node, func_out, "data"))
         add2sinker(wf, to_sink, folder=f"preproc.{self.BUILDCODE}")
@@ -230,7 +236,9 @@ class RealignComplexDenoiseScenario(BasePreprocessingScenario):
         add2wf(wf, FILES_NODE, "noise_std_map", denoise, "noise_std_map")
         add2wf(wf, FILES_NODE, "mask", denoise, "mask")
 
-        prev_node, func_out = add_topup(wf, realign, "out_file", sequence=self.sequence)
+        prev_node, func_out = add_topup(
+            wf, denoise, "denoised_file", sequence=self.sequence
+        )
         to_sink.append((prev_node, func_out, "data"))
         add2sinker(wf, to_sink, folder=f"preproc.{self.BUILDCODE}")
 
