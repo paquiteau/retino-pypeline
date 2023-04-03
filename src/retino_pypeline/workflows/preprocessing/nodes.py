@@ -366,7 +366,7 @@ def realign_fsl_task(name="realign_fsl"):
             cost="mutualinfo",
             bins=256,
             dof=6,
-            mean_vol=True,
+            mean_vol=False,
             output_type="NIFTI_GZ",
         ),
         name=name,
