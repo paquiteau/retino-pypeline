@@ -5,10 +5,9 @@ from nipype import Workflow, Node
 from nipype.interfaces import fsl
 
 from .nodes import (
-    input_task,
-    sinker_task,
     apply_xfm_node,
     mask_node,
+    run_topup,
     noise_std_node,
     denoise_magnitude_task,
     denoise_complex_task,
@@ -16,13 +15,13 @@ from .nodes import (
     realign_fsl_task,
     mp2ri_task,
 )
-from ..base.nodes import selectfile_task, run_topup
-from ..base.build import add2wf_dwim, add2wf, add2sinker
+from ..base.nodes import selectfile_task, input_task, sinker_task
+from ..base.builder import add2wf_dwim, add2wf, add2sinker
 from retino_pypeline.workflows.tools import func2node
 
 from ..tools import _getsubid, _get_num_thread
 
-FILES_NODE = "selectfile"
+FILES_NODE = "selectfiles"
 INPUT_NODE = "input"
 SINKER_NODE = "sinker"
 
@@ -387,7 +386,7 @@ class PreprocessingWorkflowDispatcher(BaseWorkflowDispatcher):
 
     def get_workflow(self, scenario, extra_wfname=""):
         """Return a workflow for the given scenario."""
-        self.wf_scenario = self.scenarios[scenario](
+        self.wf_scenario = self.SCENARIOS[scenario](
             self.base_data_dir, self.working_dir, self.sequence
         )
         self.wf = self.wf_scenario.get_workflow(extra_wfname=extra_wfname)
