@@ -6,7 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from patch_denoise.bindings.nipype import DenoiseParameters
 
-from retino_pypeline.worklows.preprocessing.scenario import (
+from retino_pypeline.workflows.preprocessing.scenarios import (
     PreprocessingWorkflowDispatcher,
 )
 
