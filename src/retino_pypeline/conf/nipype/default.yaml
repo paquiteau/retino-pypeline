@@ -4,7 +4,7 @@ logging:
   utils_level: "INFO"
   interface_level: "INFO"
   log_to_file: true # nipype default is false
-  log_directory: ${hydra.run.dir}
+  log_directory: ${hydra:runtime.cwd}/${hydra:run.dir}
   log_size: 254000
   log_rotate: 4
 
@@ -32,5 +32,5 @@ execution:
 monitoring:
   enabled : false
   sample_frequency: 1 # sample frequency in second
-  summary_file: null
+  summary_file: ${hydra:runtime.cwd}/${hydra:run.dir}/resource_monitor.json
   summary_append: true
