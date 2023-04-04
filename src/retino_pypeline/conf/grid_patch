@@ -1,0 +1,11 @@
+# @packages _global_
+
+sub: "all"
+task: "both"
+
+hydra:
+  job:
+    mode: MULTIRUN
+    sweeper:
+      params:
+        +denoiser: "{patch_shape: 11, patch_overlap:5},{patch_shape: 11,patch_overlap:10},{patch_shape:7, patch_overlap:6},{patch_shape:7, patch_overlap:4}"
