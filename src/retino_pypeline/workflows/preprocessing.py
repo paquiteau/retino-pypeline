@@ -234,7 +234,7 @@ class ComplexDenoiseRealignScenario(BasePreprocessingScenario):
     def get_workflow(self, extra_wfname="") -> Workflow:
 
         to_sink = []
-        wf = super().get_workflow(extra_wfname=extra_wfname)
+        super().get_workflow(extra_wfname=extra_wfname)
         mp2ri = mp2ri_task("mp2ri")
         denoise = denoise_complex_task("denoise_cpx")
 
@@ -250,13 +250,12 @@ class ComplexDenoiseRealignScenario(BasePreprocessingScenario):
         self.add2wf(denoise, "denoised_file", realign, "in_file")
         to_sink.append(("realign", "motionparams"))
 
-        prev_node, func_out = self._add_topup(wf, realign, "out_file")
+        prev_node, func_out = self._add_topup(realign, "out_file")
         to_sink.append((prev_node, func_out, "data"))
 
         self.add2sinker(to_sink, folder=f"preproc.{self.BUILDCODE}")
 
-        self.wf = wf
-        return wf
+        return self.wf
 
 
 class MagnitudeDenoiseScenario(BasePreprocessingScenario):
@@ -280,19 +279,19 @@ class NoisePreprocessingScenario(BasePreprocessingScenario):
 
     def get_workflow(self, extra_wfname="") -> Workflow:
 
-        wf = super().get_workflow(extra_wfname=extra_wfname)
+        super().get_workflow(extra_wfname=extra_wfname)
 
         mask = mask_node(name="mask")
         noise_std = noise_std_node(name="noise_std")
 
-        files = wf.get_node(FILES_NODE)
-        sinker = wf.get_node("sinker")
+        files = self.wf.get_node(FILES_NODE)
+        sinker = self.wf.get_node("sinker")
 
-        wf.connect(files, "data", mask, "in_file")
-        wf.connect(files, "noise", noise_std, "noise_map_file")
-        wf.connect(mask, "mask", sinker, "preproc_extra.@mask")
-        wf.connect(noise_std, "noise_std_map", sinker, "preproc_extra.@noise_std")
-        return wf
+        self.wf.connect(files, "data", mask, "in_file")
+        self.wf.connect(files, "noise", noise_std, "noise_map_file")
+        self.wf.connect(mask, "mask", sinker, "preproc_extra.@mask")
+        self.wf.connect(noise_std, "noise_std_map", sinker, "preproc_extra.@noise_std")
+        return self.wf
 
 
 class PreprocessingWorkflowDispatcher(WorkflowDispatcher):
