@@ -15,10 +15,9 @@ from ..nodes.preprocessing import (
     realign_fsl_task,
     mp2ri_task,
 )
-from ..nodes.base import selectfile_task, input_task, sinker_task
-from .base import WorkflowScenario, WorkflowDispatcher
+from .base import BaseWorkflowScenario, WorkflowDispatcher
 
-from ..tools import _getsubid, _get_num_thread
+from ..tools import _get_num_thread
 
 FILES_NODE = "selectfiles"
 INPUT_NODE = "input"
@@ -34,7 +33,7 @@ _REGEX_SINKER = [
 ]
 
 
-class BasePreprocessingScenario(WorkflowScenario):
+class BasePreprocessingScenario(BaseWorkflowScenario):
     BUILD_CODE = None
 
     INPUT_FIELDS = ["sub_id", "task", "denoise_str"]
@@ -46,7 +45,7 @@ class BasePreprocessingScenario(WorkflowScenario):
         self.sequence: str = sequence
         self.wf: Workflow = None
 
-    def add_coregistration(self, prev_node, func_out) -> tuple[Node, str]:
+    def _add_coregistration(self, prev_node, func_out) -> tuple[Node, str]:
         extract_first = Node(fsl.ExtractROI(), name="extract_first")
         extract_first.inputs.t_min = 0
         extract_first.inputs.t_size = 1
@@ -80,19 +79,7 @@ class BasePreprocessingScenario(WorkflowScenario):
 
         return prev_node, func_out
 
-    def get_workflow(self, extra_wfname="") -> Workflow:
-        """
-        Add the input and sinker nodes to the workflow.
-        """
-
-        self.wf = Workflow(
-            name=f"{self.WF_NAME}_{self.BUILDCODE}" + extra_wfname,
-            base_dir=self.working_dir,
-        )
-
-        input_node = input_task(self.INPUT_FIELDS)
-        sinker = sinker_task(self.base_data_dir)
-
+    def _get_files_templates(self):
         template = {
             "anat": "sub_%02i/anat/*_T1.nii",
             "data": f"sub_%02i/func/*{self.sequence}_%sTask.nii",
@@ -107,22 +94,17 @@ class BasePreprocessingScenario(WorkflowScenario):
             "noise_std_map": [["sub_id"]],
             "mask": [["sub_id", "task"]],
         }
-
         if self.sequence == "EPI3D":
             template["data_opposite"] = "sub_%02i/func/*EPI3D_Clockwise_1rep_PA.nii"
             template_args["data_opposite"] = [["sub_id"]]
-        file_node = selectfile_task(
-            template=template,
-            template_args=template_args,
-            base_data_dir=self.base_data_dir,
-            infields=["sub_id", "task"],
-        )
+        return template, template_args
 
-        self.add2wf(input_node, ("sub_id", _getsubid), sinker, "container")
-        self.add2wf_dwim(input_node, file_node, ["sub_id", "task"])
-
-        sinker.inputs.regexp_substitutions = _REGEX_SINKER
-        return self.wf
+    def get_workflow(self, extra_wfname="") -> Workflow:
+        """
+        Add the input and sinker nodes to the workflow.
+        """
+        super().get_workflow(extra_wfname)
+        self.wf.name = (f"{self.WF_NAME}_{self.BUILDCODE}" + extra_wfname,)
 
 
 class RealignOnlyScenario(BasePreprocessingScenario):

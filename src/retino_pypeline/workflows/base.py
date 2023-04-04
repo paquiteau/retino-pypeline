@@ -2,7 +2,8 @@
 
 from nipype import Workflow, Node
 
-from ..tools import _get_num_thread
+from ..tools import _get_num_thread, _getsubid
+from ..nodes.base import selectfile_task, input_task, sinker_task
 
 
 class WorkflowScenario:
@@ -104,6 +105,43 @@ class WorkflowScenario:
                 self.show_graph(graph2use=graph2use).split(".")[0] + "_detailed.png"
             )
         return Image(self.show_graph())
+
+
+class BaseWorkflowScenario(WorkflowScenario):
+
+    _REGEX_SINKER = [
+        (r"_sub_id_(.*?)([_/])", r"\g<2>"),
+        (r"_denoise_str_", ""),
+        (r"_task_(.*?)([_/])", r"\g<2>"),
+        (r"rsub", "sub"),
+        (r"rrsub", "sub"),
+        (r"rpsub", "sub"),
+    ]
+
+    def get_scenario(self, extra_wfname="") -> Workflow:
+        """Return the workflow."""
+        self.wf = Workflow(name=self.WF_NAME + extra_wfname)
+        self.wf.base_dir = self.working_dir
+        self.wf.config = {"execution": {"crashdump_dir": self.working_dir / "crash"}}
+
+        input_node = input_task(self.INPUT_FIELDS)
+        sinker = sinker_task(self.base_data_dir)
+        template, template_args = self._get_file_templates()
+        file_node = selectfile_task(
+            template=template,
+            template_args=template_args,
+            base_data_dir=self.base_data_dir,
+            infields=["sub_id", "task"],
+        )
+
+        self.add2wf(input_node, ("sub_id", _getsubid), sinker, "container")
+        self.add2wf_dwim(input_node, file_node, ["sub_id", "task"])
+
+        sinker.inputs.regexp_substitutions = self._REGEX_SINKER
+        return self.wf
+
+    def _get_file_templates(self) -> tuple[dict[str, str], dict[str, list[list[str]]]]:
+        raise NotImplementedError
 
 
 class WorkflowDispatcher:
