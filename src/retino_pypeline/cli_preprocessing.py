@@ -16,7 +16,7 @@ from retino_pypeline.workflows.preprocessing.scenarios import (
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(config_path="conf", config_name="preprocessing")
+@hydra.main(config_path="conf", config_name="preprocessing", version_base="1.2.0")
 def main(cfg: DictConfig) -> None:
     """Run the preprocessing."""
 
