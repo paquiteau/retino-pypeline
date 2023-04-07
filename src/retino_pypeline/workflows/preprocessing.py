@@ -40,8 +40,7 @@ class BasePreprocessingScenario(BaseWorkflowScenario):
     WF_NAME = "preproc"
 
     def __init__(self, base_data_dir, working_dir, sequence="EPI3D"):
-        self.base_data_dir: str = base_data_dir
-        self.working_dir: str = working_dir
+        super().__init__(base_data_dir, working_dir)
         self.sequence: str = sequence
         self.wf: Workflow = None
 
@@ -79,7 +78,7 @@ class BasePreprocessingScenario(BaseWorkflowScenario):
 
         return prev_node, func_out
 
-    def _get_files_templates(self):
+    def _get_file_templates(self):
         template = {
             "anat": "sub_%02i/anat/*_T1.nii",
             "data": f"sub_%02i/func/*{self.sequence}_%sTask.nii",
@@ -103,8 +102,9 @@ class BasePreprocessingScenario(BaseWorkflowScenario):
         """
         Add the input and sinker nodes to the workflow.
         """
-        super().get_workflow(extra_wfname)
-        self.wf.name = (f"{self.WF_NAME}_{self.BUILDCODE}" + extra_wfname,)
+        self.wf = super().get_workflow()
+        self.wf.name = f"{self.WF_NAME}_{self.BUILDCODE}" + extra_wfname
+        return self.wf
 
 
 class RealignOnlyScenario(BasePreprocessingScenario):
@@ -136,7 +136,7 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
 
     def get_workflow(self, extra_wfname="") -> Workflow:
         to_sink = []
-        wf = super().get_workflow(extra_wfname=extra_wfname)
+        super().get_workflow(extra_wfname=extra_wfname)
         # Realign
         realign = realign_fsl_task("realign")
         to_sink.append(("realign", "par_file", "motionparams"))
@@ -150,13 +150,12 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
         self.add2wf(FILES_NODE, "mask", denoise, "mask")
         self.add2wf(INPUT_NODE, "denoise_str", denoise, "denoise_str")
 
-        prev_node, func_out = self._add_topup(wf, denoise, "denoised_file")
+        prev_node, func_out = self._add_topup(denoise, "denoised_file")
 
         to_sink.append((prev_node, func_out, "data"))
         self.add2sinker(to_sink, folder=f"preproc.{self.BUILDCODE}")
 
-        self.wf = wf
-        return wf
+        return self.wf
 
 
 class RealignComplexDenoiseScenario(BasePreprocessingScenario):
