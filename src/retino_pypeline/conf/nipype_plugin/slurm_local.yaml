@@ -1,3 +1,20 @@
 name: "SLURM"
 args:
-  sbatch_args: "--time=01:00:00 --time-min=00:10:00  "
+  sbatch_args:
+    time: "00:40:00"
+    time-min: "00:10:00"
+    mem: 16G
+    hint: nomultithread
+    partition: milan
+    qos: normal
+node_args:
+  denoise_mag:
+    n_procs: 10
+    sbatch_args:
+      time: 03:00:00
+      time-min: 00:10:00
+  denoise_cpx:
+    n_procs: 10
+    sbatch_args:
+      time: 03:00:00
+      time-min: 00:10:00

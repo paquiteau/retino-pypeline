@@ -21,6 +21,16 @@ def _get_key(d, k):
     return d[k]
 
 
+def dict2cli(d):
+    """Convert a dictionary to a command line string."""
+    if isinstance(d, str):
+        return d
+    elif isinstance(d, dict):
+        return " ".join([f"--{k}={v}" for k, v in d.items()])
+    else:
+        raise ValueError(f"Cannot convert {d} to command line arguments.")
+
+
 def show_graph(wf, graph2use="colored"):
     """Check the workflow. Also draws a representation."""
     # TODO ascii plot: https://github.com/ggerganov/dot-to-ascii

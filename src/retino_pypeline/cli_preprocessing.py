@@ -47,6 +47,8 @@ def main(cfg: DictConfig) -> None:
         denoise_str=DenoiseParameters.get_str(**dcfg["denoiser"]),
         plugin=dcfg["nipype_plugin"]["name"],
         plugin_args=dcfg["nipype_plugin"]["args"],
+        nipype_config=dcfg["nipype"],
+        node_args=dcfg["nipype_plugin"].get("node_args", {}),
     )
 
 

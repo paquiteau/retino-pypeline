@@ -1,8 +1,8 @@
 """Base classes for workflow controls."""
 import os
 from nipype import Workflow, Node
-
-from .tools import _get_num_thread, _getsubid
+from typing import Literal
+from .tools import _get_num_thread, _getsubid, dict2cli
 from ..nodes.base import selectfile_task, input_task, sinker_task
 
 
@@ -163,11 +163,12 @@ class WorkflowDispatcher:
 
     def run(
         self,
-        task,
-        sub_id,
+        task: str,
+        sub_id: int | list[int] | Literal["all"],
         denoise_str,
         plugin="MultiProc",
-        plugin_args=None,
+        plugin_args: dict = None,
+        node_args: dict = None,
         nipype_config=None,
     ) -> None:
         """Run a workflow after configuring it."""
@@ -192,8 +193,27 @@ class WorkflowDispatcher:
         elif "SLURM" in plugin:
             # Translate the n_procs directive to a plugin_args for slurm.
             for node in self.wf._graph.nodes():
+                print(node.name)
+                if node.name in node_args:
+                    for key, value in node_args[node.name].items():
+                        if key == "sbatch_args":
+                            value = dict2cli(value)
+                        setattr(node, key, value)
+                    print(node.__dict__)
                 if hasattr(node, "n_procs"):
-                    node.plugin_args = {"sbatch_args": f"-c {node.n_procs}"}
+                    if hasattr(node, "plugin_args"):
+                        if "sbatch_args" in node.plugin_args:
+                            node.plugin_args["sbatch_args"] += f"-c {node.n_procs}"
+                        else:
+                            node.plugin_args["sbatch_args"] = f"-c {node.n_procs}"
+                    else:
+                        node.plugin_args = {"sbatch_args": f"-c {node.n_procs}"}
+
+            # format the sbatch_args
+            sbatch_args = plugin_args.get("sbatch_args", "")
+            sbatch_args = dict2cli(sbatch_args)
+            plugin_args["sbatch_args"] = sbatch_args
+            print(plugin_args)
         elif plugin is not None:
             raise ValueError(f"Plugin {plugin} is not supported.")
 
