@@ -1,0 +1,19 @@
+name: "SLURM"
+args:
+  sbatch_args:
+    time: "00:40:00"
+    time-min: "00:10:00"
+    license: "fs_work,fs_scratch"
+    mem: "16G"
+    hint: "nomultithread"
+node_args:
+  denoise_mag:
+    n_procs: 64
+    sbatch_args:
+      time: 12:00:00
+      time-min: 01:00:00
+  denoise_cpx:
+    n_procs: 64
+    sbatch_args:
+      time: 12:00:00
+      time-min: 01:00:00
