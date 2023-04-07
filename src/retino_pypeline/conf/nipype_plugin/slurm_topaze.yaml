@@ -6,6 +6,9 @@ args:
     license: "fs_work,fs_scratch"
     mem: "16G"
     hint: "nomultithread"
+    partition: milan
+    qos: normal
+
 node_args:
   denoise_mag:
     n_procs: 64
