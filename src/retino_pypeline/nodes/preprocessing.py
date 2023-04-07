@@ -194,10 +194,14 @@ def denoise_magnitude_task(name="denoise_mag"):
             denoiser.inputs.mask = mask
             denoiser.inputs.noise_std_map = noise_std_map
         results = denoiser.run()
-        return results.outputs.denoised_file, results.outputs.noise_std_map
+        return (
+            results.outputs.denoised_file,
+            results.outputs.noise_std_map,
+            results.outputs.rank_map,
+        )
 
     node = func2node(
-        denoise, output_names=["denoised_file", "noise_std_map"], name=name
+        denoise, output_names=["denoised_file", "noise_std_map", "rank_map"], name=name
     )
     node.n_procs = _get_num_thread()
     return node
@@ -231,10 +235,14 @@ def denoise_complex_task(name="denoise_mag"):
             denoiser.inputs.mask = mask
             denoiser.inputs.noise_std_map = noise_std_map
         results = denoiser.run()
-        return results.outputs.denoised_file, results.outputs.noise_std_map
+        return (
+            results.outputs.denoised_file,
+            results.outputs.noise_std_map,
+            results.outputs.rank_map,
+        )
 
     node = func2node(
-        denoise, output_names=["denoised_file", "noise_std_map"], name=name
+        denoise, output_names=["denoised_file", "noise_std_map", "rank_map"], name=name
     )
     node.n_procs = _get_num_thread()
     return node
