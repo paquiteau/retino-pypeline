@@ -1,7 +1,8 @@
 name: "SLURM"
 args:
+  max_jobs: 10
   sbatch_args:
-    time: "00:40:00"
+    time: "00:30:00"
     time-min: "00:10:00"
     license: "fs_work,fs_scratch"
     mem: "16G"
