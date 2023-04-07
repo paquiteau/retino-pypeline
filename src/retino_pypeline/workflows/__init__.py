@@ -1,2 +1,4 @@
 from .preprocessing import PreprocessingWorkflowDispatcher
-from .analysis import AnalysisWorkflowDispatcher
+from .analysis import RetinoAnalysisDispatcher
+
+__all__ = ["PreprocessingWorkflowDispatcher", "RetinoAnalysisDispatcher"]

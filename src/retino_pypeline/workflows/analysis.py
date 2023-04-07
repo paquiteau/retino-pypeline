@@ -2,7 +2,7 @@
 from nipype import Workflow
 from .base import BaseWorkflowScenario, WorkflowDispatcher
 
-from ..tools import _get_key
+from .tools import _get_key
 
 from ..nodes.analysis import (
     cond_design_matrix_node,
