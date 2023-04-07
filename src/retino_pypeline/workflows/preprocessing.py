@@ -17,7 +17,7 @@ from ..nodes.preprocessing import (
 )
 from .base import BaseWorkflowScenario, WorkflowDispatcher
 
-from ..tools import _get_num_thread
+from .tools import _get_num_thread
 
 FILES_NODE = "selectfiles"
 INPUT_NODE = "input"

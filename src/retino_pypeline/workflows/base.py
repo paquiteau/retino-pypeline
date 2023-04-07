@@ -2,7 +2,7 @@
 
 from nipype import Workflow, Node
 
-from ..tools import _get_num_thread, _getsubid
+from .tools import _get_num_thread, _getsubid
 from ..nodes.base import selectfile_task, input_task, sinker_task
 
 
