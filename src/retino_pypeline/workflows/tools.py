@@ -50,21 +50,6 @@ def _get_key(d, k):
     return d[k]
 
 
-def func2node(func, output_names, name=None, input_names=None):
-    """Return a Node created encapsulating a function.
-
-    If not provided, input_names and name are determined using inspect module.
-    """
-    if name is None:
-        name = func.__name__
-    if input_names is None:
-        input_names = inspect.getfullargspec(func).args
-    return Node(
-        Function(function=func, input_names=input_names, output_names=output_names),
-        name=name,
-    )
-
-
 def show_graph(wf, graph2use="colored"):
     """Check the workflow. Also draws a representation."""
     # TODO ascii plot: https://github.com/ggerganov/dot-to-ascii

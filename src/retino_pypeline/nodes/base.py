@@ -1,7 +1,23 @@
 """Base Nodes."""
+import inspect
 
-from nipype import Node, IdentityInterface
+from nipype import Node, IdentityInterface, Function
 from nipype.interfaces import io as nio
+
+
+def func2node(func, output_names, name=None, input_names=None):
+    """Return a Node created encapsulating a function.
+
+    If not provided, input_names and name are determined using inspect module.
+    """
+    if name is None:
+        name = func.__name__
+    if input_names is None:
+        input_names = inspect.getfullargspec(func).args
+    return Node(
+        Function(function=func, input_names=input_names, output_names=output_names),
+        name=name,
+    )
 
 
 def input_task(in_fields):
