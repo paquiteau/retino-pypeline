@@ -134,4 +134,20 @@ class RetinoAnalysisScenario(BaseWorkflowScenario):
 
 
 class RetinoAnalysisDispatcher(WorkflowDispatcher):
-    ...
+    """Dispatcher for the retino analysis workflow."""
+
+    def __init__(self, base_data_dir, working_dir, sequence="EPI3D"):
+        self.base_data_dir: str = base_data_dir
+        self.working_dir: str = working_dir
+        self.sequence: str = sequence
+        self.wf: Workflow = None
+        self.wf_scenario: RetinoAnalysisScenario = None
+
+    def get_workflow(self, scenario, extra_wfname=""):
+        """Return a workflow for the given scenario."""
+        self.wf_scenario = self.SCENARIOS[scenario](
+            self.base_data_dir, self.working_dir, self.sequence
+        )
+        self.wf = self.wf_scenario.get_workflow(extra_wfname=extra_wfname)
+        self.wf.inputs.input.preproc_code = "scenario"
+        return self.wf
