@@ -14,10 +14,10 @@ node_args:
   denoise_mag:
     n_procs: 64
     sbatch_args:
-      time: 12:00:00
-      time-min: 01:00:00
+      time: 8:00:00
+      time-min: 00:10:00
   denoise_cpx:
     n_procs: 64
     sbatch_args:
-      time: 12:00:00
-      time-min: 01:00:00
+      time: 8:00:00
+      time-min: 00:20:00

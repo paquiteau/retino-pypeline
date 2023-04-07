@@ -1,0 +1,5 @@
+method: "nordic"
+patch_shape: 11
+patch_overlap: 5
+recombination: "weighted"
+mask_threshold: 10

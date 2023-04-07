@@ -1,0 +1,5 @@
+method: "optimal-fro"
+patch_shape: 11
+patch_overlap: 10
+recombination: "weighted"
+mask_threshold: 10
