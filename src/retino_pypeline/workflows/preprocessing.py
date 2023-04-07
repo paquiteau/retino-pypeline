@@ -144,6 +144,7 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
         self.add2wf(FILES_NODE, "data", realign, "in_file")
         # MagDenoise
         denoise = denoise_magnitude_task("denoise_mag")
+        denoise.n_procs = _get_num_thread()
         to_sink.append(("denoise_mag", "rank_map", "rank_map"))
         self.add2wf("realign", "out_file", denoise, "data")
         self.add2wf(FILES_NODE, "noise_std_map", denoise, "noise_std_map")
@@ -183,6 +184,7 @@ class RealignComplexDenoiseScenario(BasePreprocessingScenario):
         # Provide the real and imaginary part to the complex denoising
         # Retrieve the magnitude of the denoised complex image.
         denoise = denoise_complex_task("denoise_cpx")
+        denoise.n_procs = _get_num_thread()
         self.add2wf_dwim(
             wf,
             realign_cpx,
@@ -213,6 +215,7 @@ class MagnitudeDenoiseRealignScenario(BasePreprocessingScenario):
         wf = super().get_workflow(extra_wfname=extra_wfname)
 
         denoise = denoise_magnitude_task("denoise_mag")
+        denoise.n_procs = _get_num_thread()
         to_sink.append(("denoise_mag", "rank_map", "rank_map"))
         self.add2wf_dwim(FILES_NODE, denoise, ["data", "noise_std_map", "mask"])
 
@@ -238,6 +241,7 @@ class ComplexDenoiseRealignScenario(BasePreprocessingScenario):
         super().get_workflow(extra_wfname=extra_wfname)
         mp2ri = mp2ri_task("mp2ri")
         denoise = denoise_complex_task("denoise_cpx")
+        denoise.n_procs = _get_num_thread()
         to_sink.append(("denoise_cpx", "rank_map", "rank_map"))
 
         self.add2wf_dwim(FILES_NODE, denoise, ["noise_std_map", "mask"])

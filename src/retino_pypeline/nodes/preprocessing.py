@@ -5,7 +5,6 @@ Some Nodes are implemented as Nipype workflow but don't worry about that.
 import nipype.interfaces.fsl as fsl
 from nipype import Function, IdentityInterface, Node, Workflow
 
-from retino_pypeline.workflows.tools import _get_num_thread
 from .base import func2node
 
 from patch_denoise.bindings.nipype import NoiseStdMap
@@ -188,7 +187,6 @@ def denoise_magnitude_task(name="denoise_mag"):
     node = func2node(
         denoise, output_names=["denoised_file", "noise_std_map", "rank_map"], name=name
     )
-    node.n_procs = _get_num_thread()
     return node
 
 
@@ -229,7 +227,6 @@ def denoise_complex_task(name="denoise_cpx"):
     node = func2node(
         denoise, output_names=["denoised_file", "noise_std_map", "rank_map"], name=name
     )
-    node.n_procs = _get_num_thread()
     return node
 
 
