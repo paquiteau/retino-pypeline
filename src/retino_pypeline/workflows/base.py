@@ -1,5 +1,5 @@
 """Base classes for workflow controls."""
-
+import os
 from nipype import Workflow, Node
 
 from .tools import _get_num_thread, _getsubid
@@ -118,11 +118,13 @@ class BaseWorkflowScenario(WorkflowScenario):
         (r"rpsub", "sub"),
     ]
 
-    def get_scenario(self, extra_wfname="") -> Workflow:
+    def get_workflow(self, extra_wfname="") -> Workflow:
         """Return the workflow."""
         self.wf = Workflow(name=self.WF_NAME + extra_wfname)
         self.wf.base_dir = self.working_dir
-        self.wf.config = {"execution": {"crashdump_dir": self.working_dir / "crash"}}
+        self.wf.config = {
+            "execution": {"crashdump_dir": os.path.join(self.working_dir, "crash")}
+        }
 
         input_node = input_task(self.INPUT_FIELDS)
         sinker = sinker_task(self.base_data_dir)
@@ -187,7 +189,7 @@ class WorkflowDispatcher:
         if plugin == "MultiProc":
             if plugin_args["n_procs"] in [None, -1]:
                 plugin_args["n_procs"] = _get_num_thread()
-        elif plugin == "SLURMGraph":
+        elif "SLURM" in plugin:
             # Translate the n_procs directive to a plugin_args for slurm.
             for node in self.wf._graph.nodes():
                 if hasattr(node, "n_procs"):
