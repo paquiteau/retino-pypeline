@@ -9,9 +9,7 @@ from omegaconf import DictConfig, OmegaConf
 from nipype import config as nipype_cfg
 from patch_denoise.bindings.nipype import DenoiseParameters
 
-from retino_pypeline.workflows.preprocessing.scenarios import (
-    PreprocessingWorkflowDispatcher,
-)
+from retino_pypeline.workflows.preprocessing import PreprocessingWorkflowDispatcher
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +30,16 @@ def main(cfg: DictConfig) -> None:
         for kkey, vval in val.items():
             nipype_cfg.set(key, kkey, str(vval))
 
-    logger.info("Resource monitoring " + ("on." nipype_cfg.nipype.monitor else "off."))
+    logger.info(
+        "Resource monitoring " + ("on." if nipype_cfg.nipype.monitor else "off.")
+    )
 
     dcfg = OmegaConf.to_container(cfg)
     # Extend the configuration to allow for multiple subjects and tasks
     if dcfg["sub"] == "all":
         dcfg["sub"] = [1, 2, 3, 4, 5, 6]
-    if dfcg["task"] == "both":
-        dfcg["task"] = ["Clockwise", "AntiClockwise"]
+    if dcfg["task"] == "both":
+        dcfg["task"] = ["Clockwise", "AntiClockwise"]
 
     dispatcher.run(
         task=dcfg["task"],
