@@ -2,32 +2,17 @@
 
 Some Nodes are implemented as Nipype workflow but don't worry about that.
 """
-import os
 import nipype.interfaces.fsl as fsl
-import nipype.interfaces.spm as spm
 from nipype import Function, IdentityInterface, Node, Workflow
 
 from retino_pypeline.workflows.tools import _get_num_thread
-
-from .base import func2node, _setup_matlab
+from .base import func2node
 
 from patch_denoise.bindings.nipype import NoiseStdMap
 from retino_pypeline.interfaces.tools import Mask
 from retino_pypeline.interfaces.topup import CustomTOPUP
 
 from retino_pypeline.interfaces.motion import MagPhase2RealImag
-
-
-def realign_task(matlab_cmd=None, name="realign", spm_path=None):
-    """Create a realign node."""
-    spm_path = spm_path or os.env.get("SPM_PATH", None)
-    realign = Node(spm.Realign(paths=spm_path), name=name)
-    _setup_matlab(realign)
-    realign.inputs.separation = 1.0
-    realign.inputs.fwhm = 1.0
-    realign.inputs.register_to_mean = False
-    realign.n_procs = _get_num_thread()
-    return realign
 
 
 def topup_task(name="topup", base_dir=None):
