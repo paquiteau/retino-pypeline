@@ -4,7 +4,7 @@ from nipype import Node
 from retino_pypeline.interfaces.glm import DesignMatrixRetino, ContrastRetino, PhaseMap
 from retino_pypeline.interfaces.tools import TSNR
 
-from ..tools import func2node
+from .base import func2node
 
 
 def design_matrix_node(n_cycles, clockwise, extra_name=""):

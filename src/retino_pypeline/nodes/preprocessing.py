@@ -7,7 +7,9 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.spm as spm
 from nipype import Function, IdentityInterface, Node, Workflow
 
-from retino_pypeline.workflows.tools import func2node, _setup_matlab, _get_num_thread
+from retino_pypeline.workflows.tools import _get_num_thread
+
+from .base import func2node, _setup_matlab
 
 from patch_denoise.bindings.nipype import NoiseStdMap
 from retino_pypeline.interfaces.tools import Mask
