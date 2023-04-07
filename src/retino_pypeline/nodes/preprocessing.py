@@ -207,7 +207,7 @@ def denoise_magnitude_task(name="denoise_mag"):
     return node
 
 
-def denoise_complex_task(name="denoise_mag"):
+def denoise_complex_task(name="denoise_cpx"):
     def denoise(
         denoise_str, mask, noise_std_map, real_file, imag_file, mag_file, phase_file
     ):
