@@ -1,3 +1,5 @@
 name: "SLURMGraph"
 args:
-  sbatch_args: ""
+  sbatch_args:
+    "-t" : 1:00:00
+    "--time-min": 00:10:00
