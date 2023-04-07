@@ -144,7 +144,7 @@ class RealignMagnitudeDenoiseScenario(BasePreprocessingScenario):
         self.add2wf(FILES_NODE, "data", realign, "in_file")
         # MagDenoise
         denoise = denoise_magnitude_task("denoise_mag")
-
+        to_sink.append(("denoise_mag", "rank_map", "rank_map"))
         self.add2wf("realign", "out_file", denoise, "data")
         self.add2wf(FILES_NODE, "noise_std_map", denoise, "noise_std_map")
         self.add2wf(FILES_NODE, "mask", denoise, "mask")
@@ -190,6 +190,7 @@ class RealignComplexDenoiseScenario(BasePreprocessingScenario):
             ["real_file", "imag_file", "mag_file", "phase_file"],
         )
 
+        to_sink.append(("denoise_cpx", "rank_map", "rank_map"))
         self.add2wf(FILES_NODE, "noise_std_map", denoise, "noise_std_map")
         self.add2wf(FILES_NODE, "mask", denoise, "mask")
 
@@ -212,6 +213,7 @@ class MagnitudeDenoiseRealignScenario(BasePreprocessingScenario):
         wf = super().get_workflow(extra_wfname=extra_wfname)
 
         denoise = denoise_magnitude_task("denoise_mag")
+        to_sink.append(("denoise_mag", "rank_map", "rank_map"))
         self.add2wf_dwim(FILES_NODE, denoise, ["data", "noise_std_map", "mask"])
 
         realign = realign_fsl_task(self.realign_backend)
@@ -236,6 +238,7 @@ class ComplexDenoiseRealignScenario(BasePreprocessingScenario):
         super().get_workflow(extra_wfname=extra_wfname)
         mp2ri = mp2ri_task("mp2ri")
         denoise = denoise_complex_task("denoise_cpx")
+        to_sink.append(("denoise_cpx", "rank_map", "rank_map"))
 
         self.add2wf_dwim(FILES_NODE, denoise, ["noise_std_map", "mask"])
         self.add2wf(FILES_NODE, "data", mp2ri, "mag_file")
