@@ -103,7 +103,7 @@ def topup_node_task(name="topup", base_dir=None):
         import os
         from nipype.interfaces import fsl
         from nipype import Node
-        from retino_pypeline.workflows.preprocessing.nodes import (
+        from retino_pypeline.nodes.preprocessing import (
             topup_task,
             applytopup_task,
         )
@@ -145,7 +145,7 @@ def conditional_topup_task(name):
     """Return a Node with the conditional execution of a topup workflow."""
 
     def _func(sequence, data, data_opposite):
-        from retino_pypeline.workflows.preprocessing.nodes import run_topup
+        from retino_pypeline.nodes.preprocessing import run_topup
 
         if "EPI" in sequence:
             return run_topup(data, data_opposite)
