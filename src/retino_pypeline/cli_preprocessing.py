@@ -31,7 +31,7 @@ def main(cfg: DictConfig) -> None:
             nipype_cfg.set(key, kkey, str(vval))
 
     logger.info(
-        "Resource monitoring " + ("on." if nipype_cfg.nipype.monitor else "off.")
+        "Resource monitoring " + ("on." if nipype_cfg.resource_monitor else "off.")
     )
 
     dcfg = OmegaConf.to_container(cfg)
