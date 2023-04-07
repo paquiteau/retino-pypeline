@@ -1,0 +1,6 @@
+data_dir: "/ccc/scratch/cont003/drf/combypie/dataset/data"
+tmp_dir: "/ccc/scratch/cont003/drf/combypie/dataset/tmp"
+
+sub: 1
+sequence: "EPI3D"
+task: "Clockwise"  # AntiClockwise

@@ -1,0 +1,19 @@
+defaults:
+  - dataset/topaze
+  - denoiser/default
+  - nipype/default
+  - nipype_plugin: slurm_topaze
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+  - _self_
+
+build_code: "rd"
+sub: 1
+task: "Clockwise"  # AntiClockwise
+
+nipype.monitoring.enabled: true
+
+hydra:
+  callbacks:
+    latest_link:
+      _target_: hydra_callbacks.LatestRunLink
