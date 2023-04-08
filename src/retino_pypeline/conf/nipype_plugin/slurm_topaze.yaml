@@ -11,6 +11,15 @@ args:
     qos: normal
 
 node_args:
+  selectfiles:
+    n_procs: 2
+    time: 00:05:00
+    qos: test
+  sinker:
+    n_procs: 2
+    time: 00:10:00
+    qos: test
+
   denoise_mag:
     n_procs: 64
     sbatch_args:
