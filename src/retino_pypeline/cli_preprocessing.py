@@ -38,13 +38,16 @@ def main(cfg: DictConfig) -> None:
     # Extend the configuration to allow for multiple subjects and tasks
     if dcfg["sub"] == "all":
         dcfg["sub"] = [1, 2, 3, 4, 5, 6]
-    if dcfg["task"] == "both":
+    if dcfg["task"] == "both" and dcfg["build_code"] != "n":
         dcfg["task"] = ["Clockwise", "AntiClockwise"]
-
+    if dcfg["build_code"] == "n":
+        denoise_str = ""
+    else:
+        denoise_str = DenoiseParameters.get_str(**dcfg["denoiser"])
     dispatcher.run(
         task=dcfg["task"],
         sub_id=dcfg["sub"],
-        denoise_str=DenoiseParameters.get_str(**dcfg["denoiser"]),
+        denoise_str=denoise_str,
         plugin=dcfg["nipype_plugin"]["name"],
         plugin_args=dcfg["nipype_plugin"]["args"],
         nipype_config=dcfg["nipype"],

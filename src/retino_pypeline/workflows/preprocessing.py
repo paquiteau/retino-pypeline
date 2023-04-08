@@ -84,14 +84,14 @@ class BasePreprocessingScenario(BaseWorkflowScenario):
             "data": f"sub_%02i/func/*{self.sequence}_%sTask.nii",
             "data_phase": f"sub_%02i/func/*{self.sequence}_%sTask_phase.nii",
             "noise_std_map": f"sub_%02i/preproc_extra/*{self.sequence}-0v_std.nii",
-            "mask": f"sub_%02i/preproc_extra/*{self.sequence}_%sTask_mask.nii",
+            "mask": f"sub_%02i/preproc_extra/*{self.sequence}_*_mask.nii",
         }
         template_args = {
             "anat": [["sub_id"]],
             "data": [["sub_id", "task"]],
             "data_phase": [["sub_id", "task"]],
             "noise_std_map": [["sub_id"]],
-            "mask": [["sub_id", "task"]],
+            "mask": [["sub_id"]],
         }
         if self.sequence == "EPI3D":
             template["data_opposite"] = "sub_%02i/func/*EPI3D_Clockwise_1rep_PA.nii"
@@ -282,6 +282,19 @@ class ComplexDenoiseScenario(BasePreprocessingScenario):
 class NoisePreprocessingScenario(BasePreprocessingScenario):
 
     BUILDCODE = "n"
+
+    def _get_file_templates(self):
+        template = {
+            "anat": "sub_%02i/anat/*_T1.nii",
+            "data": f"sub_%02i/func/*{self.sequence}_ClockwiseTask.nii",
+            "noise": f"sub_%02i/extra/*{self.sequence}-0v.nii",
+        }
+        template_args = {
+            "anat": [["sub_id"]],
+            "data": [["sub_id"]],
+            "noise": [["sub_id"]],
+        }
+        return template, template_args
 
     def get_workflow(self, extra_wfname="") -> Workflow:
 
