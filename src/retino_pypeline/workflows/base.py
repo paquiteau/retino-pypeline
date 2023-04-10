@@ -193,13 +193,11 @@ class WorkflowDispatcher:
         elif "SLURM" in plugin:
             # Translate the n_procs directive to a plugin_args for slurm.
             for node in self.wf._graph.nodes():
-                print(node.name)
                 if node.name in node_args:
                     for key, value in node_args[node.name].items():
                         if key == "sbatch_args":
                             value = dict2cli(value)
                         setattr(node, key, value)
-                    print(node.__dict__)
                 if hasattr(node, "n_procs"):
                     if hasattr(node, "plugin_args"):
                         if "sbatch_args" in node.plugin_args:
@@ -213,7 +211,6 @@ class WorkflowDispatcher:
             sbatch_args = plugin_args.get("sbatch_args", "")
             sbatch_args = dict2cli(sbatch_args)
             plugin_args["sbatch_args"] = sbatch_args
-            print(plugin_args)
         elif plugin is not None:
             raise ValueError(f"Plugin {plugin} is not supported.")
 
