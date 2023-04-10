@@ -12,7 +12,7 @@ keywords = ["fMRI", "nipype", "pipeline"]
 dependencies = [
 "numpy",
 "scipy",
-"nipype @ git+https://github.com/nipy/nipype@cdfe679a49f86d2ae1e611fedbe62144c52e3435",
+"nipype",
 "nilearn",
 "nibabel",
 "tqdm",
