@@ -304,11 +304,9 @@ def realign_complex_task(name="denoise_complex_preprocess"):
             wf.ouputs.ri2mp.phase_file,
         )
 
-    return Node(
-        Function(
-            realign_complex,
-            output_names=["real_file", "imag_file", "mag_file", "phase_file"],
-        ),
+    return func2node(
+        realign_complex,
+        output_names=["real_file", "imag_file", "mag_file", "phase_file"],
         name=name,
     )
 
@@ -349,12 +347,11 @@ def apply_xfm_node(name="apply_xfm"):
         wf.run(plugin="MultiProc", plugin_args={"n_procs": 10})
         return wf.outputs.applyxfm.out_file
 
-    apply_matrix = Node(
-        Function(function=vectorized_applyxfm, output_names="out_files"),
+    return func2node(
+        vectorized_applyxfm,
+        output_names=["out_files"],
         name="apply_xfm",
     )
-
-    return apply_matrix
 
 
 def realign_fsl_task(name="realign_fsl"):

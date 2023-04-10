@@ -186,7 +186,6 @@ class RealignComplexDenoiseScenario(BasePreprocessingScenario):
         denoise = denoise_complex_task("denoise_cpx")
         denoise.n_procs = _get_num_thread()
         self.add2wf_dwim(
-            wf,
             realign_cpx,
             denoise,
             ["real_file", "imag_file", "mag_file", "phase_file"],
@@ -196,7 +195,7 @@ class RealignComplexDenoiseScenario(BasePreprocessingScenario):
         self.add2wf(FILES_NODE, "noise_std_map", denoise, "noise_std_map")
         self.add2wf(FILES_NODE, "mask", denoise, "mask")
 
-        prev_node, func_out = self._add_topup(wf, denoise, "denoised_file")
+        prev_node, func_out = self._add_topup(denoise, "denoised_file")
         to_sink.append((prev_node, func_out, "data"))
         self.add2sinker(to_sink, folder=f"preproc.{self.BUILDCODE}")
 
