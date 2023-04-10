@@ -243,7 +243,7 @@ def realign_complex_task(name="denoise_complex_preprocess"):
         import nipype.interfaces.fsl as fsl
 
         mp2ri = Node(MagPhase2RealImag(), name="mp2ri")
-        ri2mp = Node(RealImag2MagPhase(), name="mp2ri")  # TODO use fslcomplex ?
+        ri2mp = Node(RealImag2MagPhase(), name="ri2mp")  # TODO use fslcomplex ?
 
         mp2ri.inputs.mag_file = data
         mp2ri.inputs.phase_file = data_phase
@@ -277,9 +277,9 @@ def realign_complex_task(name="denoise_complex_preprocess"):
             applyxfm_real,
             applyxfm_imag,
         ]:
-            setattr(n.inputs, "n_procs", 1)
+            setattr(n, "n_procs", 1)
 
-        wf = Workflow(name=name + "_wf")
+        wf = Workflow(name="realign_cpx_wf", base_dir=".")
         wf.connect(
             [
                 (mp2ri, extract_ref, [("real_file", "in_file")]),
@@ -290,7 +290,7 @@ def realign_complex_task(name="denoise_complex_preprocess"):
                 (split_real, applyxfm_real, [("out_files", "in_file")]),
                 (split_imag, applyxfm_imag, [("out_files", "in_file")]),
                 (applyxfm_real, merge_real, [("out_file", "in_files")]),
-                (applyxfm_imag, merge_imag, [("out_files", "in_files")]),
+                (applyxfm_imag, merge_imag, [("out_file", "in_files")]),
                 (merge_real, ri2mp, [("merged_file", "real_file")]),
                 (merge_imag, ri2mp, [("merged_file", "imag_file")]),
             ]
@@ -298,10 +298,10 @@ def realign_complex_task(name="denoise_complex_preprocess"):
         wf.run(plugin="MultiProc", plugin_args={"n_procs": num_threads})
         # Return real, imag, mag and phase.
         return (
-            wf.ouputs.merge_real.out_file,
-            wf.ouputs.merge_imag.out_file,
-            wf.ouputs.ri2mp.mag_file,
-            wf.ouputs.ri2mp.phase_file,
+            wf.outputs.merge_real.merged_file,
+            wf.outputs.merge_imag.merged_file,
+            wf.outputs.ri2mp.mag_file,
+            wf.outputs.ri2mp.phase_file,
         )
 
     return func2node(
