@@ -234,7 +234,7 @@ def realign_complex_task(name="denoise_complex_preprocess"):
     """Prepare the file for the complex denoising"""
 
     def realign_complex(data, data_phase, trans_files, num_threads=1):
-        from nipype import Node, Workflow, MapNode
+        from nipype import Node, Workflow, MapNode, IdentityInterface
         from retino_pypeline.interfaces.motion import (
             ApplyXfm4D,
             MagPhase2RealImag,
@@ -278,7 +278,12 @@ def realign_complex_task(name="denoise_complex_preprocess"):
             applyxfm_imag,
         ]:
             setattr(n, "n_procs", 1)
-
+        output_node = Node(
+            IdentityInterface(
+                fields=["real_file", "imag_file", "mag_file, phase_file"]
+            ),
+            name="out",
+        )
         wf = Workflow(name="realign_cpx_wf", base_dir=".")
         wf.connect(
             [
@@ -293,15 +298,21 @@ def realign_complex_task(name="denoise_complex_preprocess"):
                 (applyxfm_imag, merge_imag, [("out_file", "in_files")]),
                 (merge_real, ri2mp, [("merged_file", "real_file")]),
                 (merge_imag, ri2mp, [("merged_file", "imag_file")]),
+                (merge_real, output_node, [("merged_file", "real_file")]),
+                (merge_imag, output_node, [("merged_file", "imag_file")]),
+                (ri2mp, output_node, [("mag_file", "mag_file")]),
+                (ri2mp, output_node, [("phase_file", "phase_file")]),
             ]
         )
         wf.run(plugin="MultiProc", plugin_args={"n_procs": num_threads})
+
+        print("out", wf.outputs)
         # Return real, imag, mag and phase.
         return (
-            wf.outputs.merge_real.merged_file,
-            wf.outputs.merge_imag.merged_file,
-            wf.outputs.ri2mp.mag_file,
-            wf.outputs.ri2mp.phase_file,
+            wf.outputs.out.real_file,
+            wf.outputs.out.imag_file,
+            wf.outputs.out.mag_file,
+            wf.outputs.out.phase_file,
         )
 
     return func2node(

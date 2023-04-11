@@ -217,8 +217,8 @@ class MagPhase2RealImag(SimpleInterface):
 class RealImag2MagPhaseInputSpec(BaseInterfaceInputSpec):
     """OutputSpect for MagPhase2RealImag."""
 
-    real_file = File()
-    imag_file = File()
+    real_file = File(exists=True)
+    imag_file = File(exists=True)
 
 
 class RealImag2MagPhaseOutputSpec(TraitedSpec):
