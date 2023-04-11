@@ -1,28 +1,21 @@
 """Motion Recalibration Interfaces."""
 import os
-import numpy as np
+from os import path
 
 import nibabel as nib
+import numpy as np
 from nipype.interfaces.base import (
-    SimpleInterface,
     BaseInterfaceInputSpec,
     File,
+    SimpleInterface,
     TraitedSpec,
-)
-
-from retino_pypeline.tools.motion import apply_motion
-
-from nipype.interfaces.base import (
-    CommandLineInputSpec,
-    File,
-    TraitedSpec,
-    traits,
     isdefined,
+    traits,
 )
 from nipype.interfaces.fsl.base import FSLCommand, FSLCommandInputSpec
-from os import path
 from nipype.utils.filemanip import split_filename
 
+from retino_pypeline.tools.motion import apply_motion
 
 ############################
 # Manual Motion Correction #
