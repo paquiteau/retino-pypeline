@@ -194,8 +194,10 @@ def denoise_complex_task(name="denoise_cpx"):
     def denoise(
         denoise_str, mask, noise_std_map, real_file, imag_file, mag_file, phase_file
     ):
+        print(real_file, imag_file, mag_file, phase_file)
 
         from patch_denoise.bindings.nipype import PatchDenoise
+
         from retino_pypeline.interfaces.nordic import NORDICDenoiser
 
         code = denoise_str.split("_")
@@ -234,13 +236,17 @@ def realign_complex_task(name="denoise_complex_preprocess"):
     """Prepare the file for the complex denoising"""
 
     def realign_complex(data, data_phase, trans_files, num_threads=1):
-        from nipype import Node, Workflow, MapNode, IdentityInterface
+        import pathlib
+
+        import nipype.interfaces.fsl as fsl
+        from nipype import IdentityInterface, MapNode, Node, Workflow
+        from nipype.utils.filemanip import split_filename
+
         from retino_pypeline.interfaces.motion import (
             ApplyXfm4D,
             MagPhase2RealImag,
             RealImag2MagPhase,
         )
-        import nipype.interfaces.fsl as fsl
 
         mp2ri = Node(MagPhase2RealImag(), name="mp2ri")
         ri2mp = Node(RealImag2MagPhase(), name="ri2mp")  # TODO use fslcomplex ?
@@ -259,7 +265,6 @@ def realign_complex_task(name="denoise_complex_preprocess"):
             ApplyXfm4D(),
             iterfield=[
                 "in_file",
-                "ref_vol",
                 "trans_file",
             ],
             name="applyxfm",
@@ -306,14 +311,32 @@ def realign_complex_task(name="denoise_complex_preprocess"):
         )
         wf.run(plugin="MultiProc", plugin_args={"n_procs": num_threads})
 
-        print("out", wf.outputs)
-        # Return real, imag, mag and phase.
-        return (
-            wf.outputs.out.real_file,
-            wf.outputs.out.imag_file,
-            wf.outputs.out.mag_file,
-            wf.outputs.out.phase_file,
-        )
+        # Workflow don't return the output files, so we need to do it manually
+        cwd = pathlib.Path.cwd() / wf.name
+        results = {
+            "real": None,
+            "imag": None,
+            "mag": None,
+            "phase": None,
+        }
+        for key, node, filename in zip(
+            results,
+            ["merge_real", "merge_imag", "ri2mp", "ri2mp"],
+            [
+                "vol0000_warp4D_merged.nii.gz",
+                "vol0000_warp4D_merged.nii.gz",
+                "vol0000_warp4D_merged_mag.nii.gz",
+                "vol0000_warp4D_merged_phase.nii.gz",
+            ],
+        ):
+            results[key] = cwd / node / filename
+
+        _, fname, ext = split_filename(data)
+        print(fname, ext)
+        for key, value in results.items():
+            value.rename(value.parent / f"{fname}_{key}{ext}")
+            results[key] = str(value)
+        return tuple(results.values())
 
     return func2node(
         realign_complex,
@@ -343,8 +366,9 @@ def apply_xfm_node(name="apply_xfm"):
     # Create an embedded workflow, and run it inside the node.
     def vectorized_applyxfm(in_file, ref_vol, trans_file):
 
-        from retino_pypeline.interfaces.motion import ApplyXfm4D
         from nipype import MapNode, Workflow
+
+        from retino_pypeline.interfaces.motion import ApplyXfm4D
 
         mnode = MapNode(ApplyXfm4D(), iterfield=["in_file"], name="applyxfm")
         mnode.inputs.single_matrix = True

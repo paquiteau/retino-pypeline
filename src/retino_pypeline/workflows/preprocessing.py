@@ -178,7 +178,7 @@ class RealignComplexDenoiseScenario(BasePreprocessingScenario):
         realign_cpx.n_procs = _get_num_thread()
 
         self.add2wf(FILES_NODE, "data", realign_cpx, "data")
-        self.add2wf("realign", "par_file", realign_cpx, "trans_files")
+        self.add2wf("realign", "mat_file", realign_cpx, "trans_files")
         self.add2wf(FILES_NODE, "data_phase", realign_cpx, "data_phase")
 
         # Provide the real and imaginary part to the complex denoising
