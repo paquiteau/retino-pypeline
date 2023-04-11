@@ -21,6 +21,7 @@ from nipype.interfaces.base import (
 )
 from nipype.interfaces.fsl.base import FSLCommand, FSLCommandInputSpec
 from os import path
+from nipype.utils.filemanip import split_filename
 
 
 ############################
@@ -198,12 +199,12 @@ class MagPhase2RealImag(SimpleInterface):
         real_data = mag_data * np.cos(pha_data)
         imag_data = mag_data * np.sin(pha_data)
 
-        basename = os.path.basename(self.inputs.mag_file).split(".")[0]
+        _, basename, ext = split_filename(self.inputs.mag_file)
 
         real_nii = nib.Nifti1Image(real_data, mag_nii.affine)
         imag_nii = nib.Nifti1Image(imag_data, mag_nii.affine)
-        real_fname = basename + "_real.nii"
-        imag_fname = basename + "_imag.nii"
+        real_fname = f"{basename}_real{ext}"
+        imag_fname = f"{basename}_imag{ext}"
 
         real_nii.to_filename(real_fname)
         imag_nii.to_filename(imag_fname)
