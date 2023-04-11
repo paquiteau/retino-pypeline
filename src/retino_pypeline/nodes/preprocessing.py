@@ -4,14 +4,13 @@ Some Nodes are implemented as Nipype workflow but don't worry about that.
 """
 import nipype.interfaces.fsl as fsl
 from nipype import Function, IdentityInterface, Node, Workflow
-
-from .base import func2node
-
 from patch_denoise.bindings.nipype import NoiseStdMap
+
+from retino_pypeline.interfaces.motion import MagPhase2RealImag
 from retino_pypeline.interfaces.tools import Mask
 from retino_pypeline.interfaces.topup import CustomTOPUP
 
-from retino_pypeline.interfaces.motion import MagPhase2RealImag
+from .base import func2node
 
 
 def topup_task(name="topup", base_dir=None):
@@ -85,12 +84,11 @@ def topup_node_task(name="topup", base_dir=None):
     def run_topup(data, data_opposite):
         """A Function running the topup steps sequentially."""
         import os
-        from nipype.interfaces import fsl
+
         from nipype import Node
-        from retino_pypeline.nodes.preprocessing import (
-            topup_task,
-            applytopup_task,
-        )
+        from nipype.interfaces import fsl
+
+        from retino_pypeline.nodes.preprocessing import applytopup_task, topup_task
 
         base_dir = os.getcwd()
 
@@ -158,6 +156,7 @@ def denoise_magnitude_task(name="denoise_mag"):
     def denoise(denoise_str, mask, noise_std_map, data):
 
         from patch_denoise.bindings.nipype import PatchDenoise
+
         from retino_pypeline.interfaces.nordic import NORDICDenoiser
 
         code = denoise_str.split("_")
