@@ -242,10 +242,12 @@ class RealImag2MagPhase(SimpleInterface):
         basename.replace("real", "")
         basename.replace("imag", "")
 
+        _, basename, ext = split_filename(self.inputs.real_file)
+
         mag_nii = nib.Nifti1Image(mag_data, real_nii.affine)
         phase_nii = nib.Nifti1Image(phase_data, real_nii.affine)
-        mag_fname = basename + "_mag.nii"
-        phase_fname = basename + "_phase.nii"
+        mag_fname = f"{basename}_mag{ext}"
+        phase_fname = f"{basename}_phase{ext}"
 
         mag_nii.to_filename(mag_fname)
         phase_nii.to_filename(phase_fname)
